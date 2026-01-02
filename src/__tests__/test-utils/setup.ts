@@ -1,5 +1,4 @@
 import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
-import { loadEnvConfig } from '@app/common/utils/load-env-config';
 
 /**
  * Global test setup and teardown
@@ -14,11 +13,6 @@ import { loadEnvConfig } from '@app/common/utils/load-env-config';
 process.env['NODE_ENV'] = 'test';
 process.env['PORT'] = '0'; // Use random port for tests
 process.env['HOST'] = '127.0.0.1';
-
-// Load environment variables from .env files
-// This loads .env first, then .env.test (if it exists)
-// Environment variables from .env files can override the defaults above
-loadEnvConfig();
 
 beforeAll(() => {
   // Additional setup if needed
