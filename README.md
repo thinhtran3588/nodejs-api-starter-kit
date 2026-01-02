@@ -19,10 +19,10 @@ A production-ready Node.js starter kit for building fast, scalable REST and Grap
 
 Branches:
 
-Main: [![CI](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci.yml)
+Main: [![CI](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-main.yml/badge.svg?branch=main)](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-main.yml)
 [![codecov](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit/graph/badge.svg?token=b8InPphzTT)](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit)
 
-Develop: [![CI](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci.yml)
+Develop: [![CI](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-develop.yml/badge.svg?branch=develop)](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-develop.yml)
 [![codecov](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit/branch/develop/graph/badge.svg?token=b8InPphzTT)](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit)
 
 ## Overview
