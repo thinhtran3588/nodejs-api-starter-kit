@@ -1,0 +1,765 @@
+---
+alwaysApply: true
+---
+
+# GemSignal API - Cursor Configuration
+
+## Documentation References
+
+**CRITICAL**: When making code changes, always refer to the following documentation files:
+
+- **[@README.md](README.md)**: Project overview, features, current status, and getting started
+- **[@docs/architecture.md](docs/architecture.md)**: Clean Architecture and DDD principles, layer responsibilities, module structure, design patterns, and technology stack
+- **[@docs/development-guide.md](docs/development-guide.md)**: Step-by-step guide for creating new features, including domain entities, use cases, repositories, routes, and testing
+
+These documents contain the authoritative information about:
+
+- Architecture patterns and layer responsibilities
+- Module structure and organization
+- Development workflows and best practices
+- Code patterns and conventions
+- Testing strategies
+
+## Project Overview
+
+This is a Node.js backend API server for "GemSignal" built with **Fastify** and TypeScript. The project follows Clean Architecture and Domain-Driven Design (DDD) principles with a modular structure implementing CQRS (Command Query Responsibility Segregation).
+
+## Key Project Facts
+
+- **Web Framework**: Fastify
+- **Language**: TypeScript (strict mode)
+- **Module System**: ES Modules (ESM)
+- **Build Tool**: TypeScript Compiler
+- **Source Directory**: `src/`
+- **Module Structure**: `src/modules/{module-name}/` with `domain/`, `application/`, `infrastructure/`, and `adapters/` layers
+- **Architecture**: Clean Architecture + DDD with CQRS pattern
+- **Dependency Injection**: Awilix with constructor injection
+- **Database**: PostgreSQL with Sequelize ORM
+- **Testing**: Vitest with 100% coverage requirement
+- **API Interfaces**: REST (Fastify routes) and GraphQL (Mercurius)
+
+## Essential Code Conventions
+
+### File Naming
+
+- Use `kebab-case` (hyphen-separated) for all file and directory names
+- Command Handlers: `*-command-handler.ts` (e.g., `register.command-handler.ts`)
+- Query Handlers: `*-query-handler.ts` (e.g., `get-user.query-handler.ts`)
+- Event Handlers: `*.event-handler.ts` (e.g., `user-registered.event-handler.ts`)
+- Routes: `*.route.ts` (e.g., `auth.route.ts`)
+- Repositories: `*-repository.ts` for interfaces, `*-repository-impl.ts` for implementations
+- Read Repositories: `*.read-repository.ts` for interfaces, `*.read-repository-impl.ts` for implementations
+- DTOs: `*.dtos.ts` (e.g., `user.dtos.ts`)
+- Aggregates: `*.ts` (e.g., `user.ts`)
+- Value Objects: `*.ts` (e.g., `email.ts`)
+- Models: `*.model.ts` (e.g., `user.model.ts`)
+- Controllers: `*-controller.ts` (e.g., `auth.controller.ts`)
+- GraphQL Schemas: `*.schema.ts` (e.g., `auth.schema.ts`)
+- GraphQL Resolvers: `*.resolvers.ts` (e.g., `auth.resolvers.ts`)
+
+### Code Style
+
+- Use `PascalCase` for class names and types
+- Use `camelCase` for variables and methods
+- Use `UPPER_SNAKE_CASE` for constants
+- Prefer single quotes for strings
+- Use trailing commas in multi-line objects and arrays
+- Group imports: Node.js built-ins first, then external packages, then relative imports
+- Use `@app/` alias for absolute imports from `src/`
+
+### Code Comments
+
+**CRITICAL**: Do not write comments if the code is obvious. Code should be self-documenting through clear naming and structure.
+
+**When NOT to add comments:**
+
+- Don't comment what the code does - the code should be clear enough
+- Don't add obvious comments like `// Set the user` above `user.set(...)`
+- Don't add comments that just repeat the code
+- Don't add comments for simple operations that are self-explanatory
+
+**When to add comments:**
+
+- Explain **why** something is done, not what is done
+- Document non-obvious business logic or domain rules
+- Explain workarounds or temporary solutions
+- Clarify complex algorithms or non-intuitive implementations
+- Document API contracts or external dependencies
+- Explain performance optimizations or architectural decisions
+
+**Examples:**
+
+```typescript
+// ❌ BAD - Obvious comment
+// Get user by ID
+const user = await this.userRepository.findById(id);
+
+// ✅ GOOD - No comment needed (code is self-explanatory)
+const user = await this.userRepository.findById(id);
+
+// ✅ GOOD - Comment explains WHY, not what
+// Use legacy validation for backward compatibility with existing users
+const isValid = await this.legacyValidator.validate(user);
+
+// ✅ GOOD - Comment explains non-obvious business rule
+// Users created before 2024 don't require email verification
+if (user.createdAt < new Date('2024-01-01')) {
+  return user;
+}
+```
+
+**Principle**: If you need a comment to explain what the code does, consider refactoring the code to be more self-explanatory instead.
+
+### Object Creation Pattern
+
+**CRITICAL**: Do not create intermediate object variables if the object is only used once as a parameter to a function. Create the object inline instead.
+
+**When NOT to create intermediate variables:**
+
+- Don't create an object variable if it's only passed to a single function call
+- Don't create intermediate variables for simple object literals that are only used once
+- Prefer inline object creation for better readability and less code
+
+**When to create intermediate variables:**
+
+- The object is used multiple times
+- The object needs to be modified before use
+- The object is part of a complex transformation chain
+- Creating the variable improves readability for very complex objects
+
+**Examples:**
+
+```typescript
+// ❌ BAD - Unnecessary intermediate variable
+const data: RegisterData = {
+  email,
+  signInType: SignInType.EMAIL,
+  username,
+  displayName,
+  password: passwordResult.password,
+};
+return this.userRepository.create(data);
+
+// ✅ GOOD - Inline object creation
+return this.userRepository.create({
+  email,
+  signInType: SignInType.EMAIL,
+  username,
+  displayName,
+  password: passwordResult.password,
+});
+
+// ✅ GOOD - Intermediate variable needed (used multiple times)
+const userData = {
+  email,
+  username,
+  displayName,
+};
+await this.validateUserData(userData);
+return this.userRepository.create(userData);
+
+// ✅ GOOD - Intermediate variable needed (modification required)
+const data = {
+  email,
+  username,
+  displayName,
+};
+if (isAdmin) {
+  data.role = 'admin';
+}
+return this.userRepository.create(data);
+```
+
+**Principle**: Only create variables when they add value - either through reuse, modification, or improved readability for complex cases.
+
+## Validation Ordering Pattern
+
+When using the `validate` function in command handlers, **always prioritize local operations first before validations that need access to the repository**.
+
+### For Create Operations
+
+**Order of validations:**
+
+1. **Local validations first** - Value object validations (format, length, pattern) that don't require database access
+   - Examples: `Email.create()`, `Email.tryCreate()`, `Username.create()`, `Username.tryCreate()`
+   - These methods throw `ValidationException` immediately if invalid (fail fast)
+2. **Repository-dependent validations second** - Validations that require querying the database
+   - Examples: `emailExists()`, `usernameExists()`, `findById()`
+   - These use the `validate()` function to collect and throw validation errors
+
+**Example:**
+
+```typescript
+// Create value objects (local validation - throws ValidationException if invalid)
+const email = Email.create(sanitizedData.email);
+const displayName = User.validateDisplayName(
+  sanitize(sanitizedData.displayName)
+);
+const username = sanitizedData.username
+  ? Username.create(sanitizedData.username)
+  : undefined;
+
+// Repository-dependent validations second (require database access)
+// Call validate() one by one for each validation check
+const emailExists = await this.userRepository.emailExists(email);
+validate(!emailExists, AuthExceptionCode.EMAIL_ALREADY_TAKEN);
+
+const usernameExists = await this.userRepository.usernameExists(username);
+validate(!usernameExists, AuthExceptionCode.USERNAME_ALREADY_TAKEN);
+```
+
+### For Update Operations
+
+**Order of validations:**
+
+1. **Local validations first** - Value object validations (format, length, pattern) that don't require database access
+   - Examples: `User.validateDisplayName()`, `Username.create()`
+   - These methods throw `ValidationException` immediately if invalid (fail fast)
+2. **Check for updates** - Determine if there are any actual changes to apply
+   - If no updates, return early (avoids unnecessary database queries)
+3. **Repository-dependent validations** - Only if there are updates, perform validations that require database access
+   - Load aggregate from repository
+   - Call `prepareUpdate()` which validates version and increments it for optimistic locking
+   - Validate business rules (e.g., uniqueness checks)
+
+**Rationale:**
+
+- Local validations are faster and fail fast on invalid input format
+- Checking for updates before database access avoids unnecessary queries when no changes are made
+- Version validation only happens when there are actual updates to apply
+- Improves performance by catching format errors and no-op requests before database operations
+- Reduces database load
+
+**Example:**
+
+```typescript
+// 1. Local validations first (format checks)
+const displayName = User.validateDisplayName(sanitize(requestData.displayName));
+const username = requestData.username
+  ? Username.create(requestData.username)
+  : undefined;
+
+// 2. Check if there are updates
+const hasUpdates = displayName !== undefined || username !== undefined;
+
+if (!hasUpdates) {
+  return; // Early return - no database query needed
+}
+
+// 3. Repository-dependent validations (only if there are updates)
+const user = await this.userValidatorService.validateUserNotDeletedById(idUuid);
+
+// Prepare update (validates version and increments it for optimistic locking)
+user.prepareUpdate(operatorId, requestData.version);
+
+// Additional business rule validations
+if (username) {
+  const usernameExists = await this.userRepository.usernameExists(
+    username,
+    idUuid
+  );
+  validate(!usernameExists, AuthExceptionCode.USERNAME_ALREADY_TAKEN);
+}
+
+// 4. Apply updates and save
+if (username !== undefined) {
+  user.setUsername(username);
+}
+if (displayName !== undefined) {
+  user.setDisplayName(displayName);
+}
+await this.userRepository.save(user);
+```
+
+## Common Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server with hot reload
+npm run dev
+
+# Build TypeScript to JavaScript
+npm run build
+
+# Run production server
+npm start
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Validate (lint, format check, tests)
+npm run validate
+```
+
+## Test Coverage Requirement
+
+**CRITICAL**: When making any new code changes (adding features, modifying existing code, or fixing bugs), you MUST:
+
+1. **Write tests to cover the new or modified code** before marking the task as complete
+2. **Write tests immediately** when adding new code - tests should be written in the same session as the code changes
+3. **Update existing tests** when modifying existing code - tests MUST be updated to reflect new behavior
+4. **Ensure test coverage** includes:
+   - Happy path scenarios
+   - Error cases and edge cases
+   - Input validation scenarios
+   - Business logic validation
+   - All new methods, functions, and classes
+   - All modified code paths and behaviors
+
+**MANDATORY**: Tests are NOT optional. Every code change that adds or modifies functionality MUST have corresponding test changes. This is a non-negotiable requirement.
+
+### Test Coverage Threshold
+
+**CRITICAL**: The project requires **100% test coverage** for:
+
+- **Lines**: 100% (every line of code must be executed in tests)
+- **Functions**: 100% (every function must be called in tests)
+- **Branches**: 100% (every conditional branch must be tested - including nullish coalescing operators, ternary operators, if/else statements, switch cases, etc.)
+- **Statements**: 100% (every statement must be executed in tests)
+
+This is configured in `vitest.config.ts` and **strictly enforced** by the validation workflow (`npm run validate`). The validation will **FAIL** if coverage drops below 100% for any metric.
+
+**MANDATORY REQUIREMENTS**:
+
+1. **All branches must be covered**: This includes:
+   - Nullish coalescing operators (`??`) - test both when value is null/undefined and when it has a value
+   - Ternary operators (`? :`) - test both true and false branches
+   - If/else statements - test both branches
+   - Switch statements - test all cases including default
+   - Logical operators (`&&`, `||`) - test short-circuit behavior
+   - Optional chaining (`?.`) - test both when property exists and when it doesn't
+
+2. **Edge cases must be tested**: Including:
+   - Null values (use type assertions `as any` if TypeScript types don't allow null)
+   - Undefined values
+   - Empty strings, arrays, objects
+   - Boundary conditions
+   - Error conditions
+
+3. **No exceptions**: 100% coverage is non-negotiable. If coverage is below 100%, you MUST add tests to cover the missing branches before marking the task as complete.
+
+### Mandatory Test Writing Rules
+
+**ALWAYS write tests when adding:**
+
+1. **New command handlers**: Every new command handler class MUST have a corresponding test file
+   - Test file location: `src/__tests__/unit/modules/{module-name}/application/command-handlers/{handler-name}.test.ts`
+   - Example: Adding `register.command-handler.ts` requires `register.command-handler.test.ts`
+
+2. **New query handlers**: Every new query handler class MUST have a corresponding test file
+   - Test file location: `src/__tests__/unit/modules/{module-name}/application/query-handlers/{handler-name}.test.ts`
+
+3. **New event handlers**: Every new event handler class MUST have a corresponding test file
+   - Test file location: `src/__tests__/unit/modules/{module-name}/application/event-handlers/{handler-name}.event-handler.test.ts`
+
+4. **New repository methods**: When adding methods to repository interfaces/implementations
+   - Add tests to existing repository test files
+   - Test both success and failure scenarios
+   - Test edge cases and boundary conditions
+
+5. **New domain logic**: When adding methods to aggregates, value objects, or domain services
+   - Test all business rules and validation logic
+   - Test error conditions and edge cases
+
+6. **New routes/endpoints**: When adding new HTTP routes
+   - Test successful requests
+   - Test validation errors
+   - Test authorization/authentication requirements
+   - Test error handling
+
+7. **New controllers**: When adding new controller methods
+   - Test request/response transformation
+   - Test delegation to handlers
+
+8. **New utility functions**: When adding helper functions or utilities
+   - Test all code paths
+   - Test edge cases and error conditions
+
+9. **Modified existing code**: When modifying existing functionality
+   - **MANDATORY**: Update existing tests to reflect new behavior - this is REQUIRED, not optional
+   - **MANDATORY**: Add new tests for new code paths introduced by modifications
+   - **MANDATORY**: Ensure all existing tests still pass - fix any broken tests
+   - **MANDATORY**: Verify test coverage still meets threshold (100% as per vitest.config.ts)
+
+### When to Write Tests
+
+Write tests in the following scenarios:
+
+1. **New features**: Always write tests for new command handlers, query handlers, repositories, routes, and domain logic
+2. **Bug fixes**: Write tests that reproduce the bug and verify the fix
+3. **Code modifications**: Update existing tests or add new tests to cover modified behavior
+4. **Refactoring**: Ensure existing tests still pass and add tests for new behavior
+5. **New methods/functions**: Every new method or function with business logic needs tests
+6. **New classes**: Every new class with behavior needs tests
+
+### Test Organization
+
+Tests are organized in `src/__tests__/` with the following structure:
+
+- **Unit Tests**: `src/__tests__/unit/modules/{module-name}/` - Follows the same directory structure as source code
+  - Example: `src/__tests__/unit/modules/auth/application/command-handlers/register.command-handler.test.ts`
+- **Common Tests**: `src/__tests__/unit/common/` - Shared/common tests for utilities and domain base classes
+- **E2E Tests**: `src/__tests__/e2e/modules/{module-name}/` - End-to-end tests that test complete HTTP flows
+  - Example: `src/__tests__/e2e/modules/auth/adapters/routes/auth.register.e2e.test.ts`
+
+### Test Types to Consider
+
+- **Unit tests**: For command handlers, query handlers, domain logic, value objects, and utilities
+- **Integration tests**: For repository implementations and route handlers
+- **E2E tests**: For complete user flows (when appropriate)
+
+### What NOT to Test
+
+The following do **NOT** require tests as they are simple type definitions without business logic:
+
+- **Type definitions and enums**: Simple TypeScript enums, type aliases, and interfaces that only define structure without any logic
+  - Examples: `SignInType`, `AuthRole`, `UserStatus` enums
+  - Rationale: These are compile-time constructs that TypeScript's type system already validates. Testing them provides no value and adds maintenance overhead.
+- **Pure type definitions**: Interfaces and type aliases that only describe data shapes
+- **Constants**: Simple constant objects without any logic or behavior
+
+### Test Writing Workflow
+
+**When adding new code, follow this workflow:**
+
+1. **Write the production code first** (command handler, repository method, etc.)
+2. **Immediately write tests** for the new code before moving to the next feature
+3. **Run tests** to ensure they pass: `npm test`
+4. **Check coverage** to ensure new code is covered: `npm run test:coverage`
+5. **Run full validation** before marking complete: `npm run validate`
+
+**When modifying existing code, follow this workflow:**
+
+1. **Understand the existing tests** - Read the test file first to understand current test coverage
+2. **Make the code changes** (modify functionality, add features, fix bugs)
+3. **MANDATORY: Update existing tests** to reflect new behavior - update test expectations, add new test cases
+4. **MANDATORY: Add new tests** for any new code paths introduced by modifications
+5. **MANDATORY: Test all new branches** - If you added nullish coalescing, ternary operators, or conditional logic, test all branches
+6. **Run tests** to ensure all tests pass (both existing and new): `npm test`
+7. **Check coverage** to ensure modified code is still covered: `npm run test:coverage`
+8. **MANDATORY: Verify 100% coverage** - Run `npm run validate` and ensure coverage is 100% for all metrics (lines, functions, branches, statements)
+9. **If coverage is below 100%**: Add additional tests to cover missing branches before marking the task as complete
+
+**Test writing checklist for new code:**
+
+- [ ] Created test file in the correct location (mirrors source structure)
+- [ ] Tested happy path scenarios
+- [ ] Tested error cases and edge cases
+- [ ] Tested input validation (if applicable)
+- [ ] Tested business logic validation
+- [ ] **Tested all branches** (nullish coalescing, ternary operators, if/else, switch cases)
+- [ ] **Tested null and undefined values** (use type assertions if needed)
+- [ ] All tests pass
+- [ ] **Coverage is 100% for lines, functions, branches, and statements** (verified by `npm run validate`)
+- [ ] Tests follow existing patterns in the codebase
+
+### Test Writing Exceptions
+
+You may skip writing tests only if:
+
+- The user explicitly requests to skip test writing
+- You are only reading files (no code changes made)
+- You are only searching or examining the codebase
+- The change is purely cosmetic (formatting, comments, documentation)
+- The code is a simple type definition or enum without any business logic (see "What NOT to Test" above)
+
+### Test Quality Standards
+
+- Tests should be clear and readable
+- Use descriptive test names that explain what is being tested
+- Follow the existing test patterns in the codebase
+- Ensure tests are independent and can run in any order
+- Mock external dependencies appropriately
+- Use `describe` blocks to organize related tests
+- Group tests by functionality: happy path, validation errors, edge cases, etc.
+
+### Test Structure Pattern
+
+Follow this structure for test files:
+
+```typescript
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// ... other imports
+
+describe('ClassName', () => {
+  let instance: ClassName;
+  let mockDependency: Dependency;
+
+  beforeEach(() => {
+    // Setup mocks and instances
+  });
+
+  describe('methodName - happy path', () => {
+    it('should successfully perform action', async () => {
+      // Arrange
+      // Act
+      // Assert
+    });
+  });
+
+  describe('methodName - validation errors', () => {
+    it('should throw ValidationException for invalid input', async () => {
+      // Test validation
+    });
+  });
+
+  describe('methodName - edge cases', () => {
+    it('should handle edge case scenario', async () => {
+      // Test edge cases
+    });
+  });
+
+  describe('methodName - error handling', () => {
+    it('should handle errors gracefully', async () => {
+      // Test error handling
+    });
+  });
+});
+```
+
+### TypeScript Type Assertions in Test Files
+
+**IMPORTANT**: In test files (`*.test.ts`), you may use `as unknown as TargetedType` type assertions when creating mocks is too difficult or complex.
+
+**When to use:**
+
+- When mocking complex types with many required properties
+- When creating partial mocks for testing specific scenarios
+- When the mock setup would be overly verbose or impractical
+- When testing error cases that require invalid type states
+
+**Guidelines:**
+
+- **Only use in test files** - Never use this pattern in production code (`src/` files)
+- Prefer proper mocks when feasible - Use `as unknown as` only when necessary
+- Add a comment explaining why the type assertion is needed if it's not obvious
+- Ensure the mock still provides the necessary properties/methods for the test
+
+**Example:**
+
+```typescript
+// In test files only - when creating a full mock is impractical
+const mockUser = {
+  id: 'user-123',
+  email: 'test@example.com',
+  // ... only include properties needed for the test
+} as unknown as User;
+
+// Or for partial mocks
+const partialMock = {
+  findById: vi.fn(),
+} as unknown as UserRepository;
+```
+
+**Rationale:**
+
+- Test files prioritize testability and maintainability over strict type safety
+- Complex type hierarchies can make proper mocking cumbersome
+- Type assertions in tests don't affect runtime behavior or production code quality
+
+## Code Validation Rule
+
+**CRITICAL**: After making any code changes (editing, creating, or modifying files), you MUST run `npm run validate` to ensure:
+
+- Code passes linting checks (`npm run lint`)
+- Code formatting is correct (`npm run format:check`)
+- All tests pass with coverage (`npm run test:coverage`)
+
+### When to Run Validation
+
+Run `npm run validate` in the following scenarios:
+
+1. After editing any TypeScript source files
+2. After creating new files
+3. After modifying existing files
+4. After completing a feature implementation
+5. After writing or updating tests
+6. Before marking tasks as complete
+
+### Validation Exceptions
+
+You may skip validation only if:
+
+- The user explicitly requests to skip validation
+- You are only reading files (no code changes made)
+- You are only searching or examining the codebase
+
+### If Validation Fails
+
+If `npm run validate` fails:
+
+1. Fix any linting errors first
+2. Fix any formatting issues
+3. Fix any failing tests
+4. Re-run validation until it passes
+5. Do not mark tasks as complete until validation passes
+
+## Automatic Discovery Pattern
+
+**CRITICAL**: The application uses **automatic discovery** for modules, models, associations, routes, and GraphQL schemas/resolvers. No manual registration is needed - just follow the conventions.
+
+### Module Discovery
+
+- Modules are automatically discovered by scanning for `module-configuration.ts` files in `modules/*/` directories
+- Each module must export a `moduleConfiguration` object with `registerDependencies` and `registerErrorCodes` functions
+- Module whitelist can be configured via `MODULE_WHITELIST` environment variable (comma-separated list)
+
+### Model Discovery
+
+- **Models are automatically discovered** - no manual registration needed
+- Create model files in `modules/{module-name}/infrastructure/models/` with `.model.ts` extension
+- Each model file must export a `modelConfiguration` object with a `register` function:
+
+```typescript
+export const modelConfiguration: ModelConfiguration = {
+  register: (sequelize) => {
+    EntityModel.init(/* ... */);
+  },
+};
+```
+
+### Association Discovery
+
+- **Associations are automatically discovered** - no manual registration needed
+- Create association files named `associations.ts` in `modules/{module-name}/infrastructure/models/`
+- Each association file must export an `associationConfiguration` object with a `register` function:
+
+```typescript
+export const associationConfiguration: ModelAssociationConfiguration = {
+  register: () => {
+    EntityModel.belongsToMany(RelatedModel, {
+      /* ... */
+    });
+  },
+};
+```
+
+### Route Discovery
+
+- **Routes are automatically discovered** - no manual registration needed
+- Create route files in `modules/{module-name}/adapters/routes/` with `.route.ts` extension
+- Application-level routes go in `application/adapters/routes/` with `.route.ts` extension
+- Each route file must export a `routeConfiguration` object with `tags` and `register` function:
+
+```typescript
+export const routeConfiguration: RouteConfiguration = {
+  tags: [
+    {
+      name: 'module-name',
+      description: 'Module description',
+    },
+  ],
+  register: (app) => {
+    app.post('/api/endpoint', async (request, reply) => {
+      // Route handler
+    });
+  },
+};
+```
+
+### GraphQL Schema Discovery
+
+- **GraphQL schemas are automatically discovered** - no manual registration needed
+- Create schema files in `modules/{module-name}/adapters/graphql/` with `.schema.ts` extension
+- Each schema file must export a schema string with a name ending in `Schema`:
+
+```typescript
+export const authSchema = `
+  type User {
+    id: ID!
+    email: String!
+  }
+  # ... more schema definitions
+`;
+```
+
+### GraphQL Resolver Discovery
+
+- **GraphQL resolvers are automatically discovered** - no manual registration needed
+- Create resolver files in `modules/{module-name}/adapters/graphql/` with `.resolvers.ts` extension
+- Each resolver file must export a resolvers object with a name ending in `Resolvers`:
+
+```typescript
+export const authResolvers = {
+  Query: {
+    me: async (_parent, _args, context) => {
+      // Resolver implementation
+    },
+  },
+  Mutation: {
+    auth: () => ({}),
+  },
+};
+```
+
+**Key Points:**
+
+- Use `register` function name (not `registerRoutes`)
+- Routes are automatically registered with Fastify and Swagger
+- Models are automatically registered with Sequelize
+- Associations are registered after all models are initialized
+- GraphQL is always enabled. The GraphiQL UI can be enabled/disabled via `GRAPHQL_UI_ENABLED=true` environment variable (similar to Swagger UI)
+- Follow the file naming conventions for automatic discovery to work
+
+## Module Structure
+
+Modules follow a consistent structure that enables automatic discovery:
+
+```text
+modules/{module-name}/
+├── domain/                      # Domain layer
+│   ├── aggregates/              # Aggregate roots (e.g., User, Role)
+│   ├── value-objects/           # Value objects (e.g., Email, Username)
+│   ├── interfaces/              # Domain interfaces
+│   │   ├── repositories/       # Write repository interfaces
+│   │   └── services/           # Domain service interfaces
+│   ├── enums/                   # Exception codes, event types, domain enums
+│   └── types/                   # Domain types (if needed)
+├── application/                 # Application layer
+│   ├── command-handlers/        # Command handlers (CQRS write)
+│   ├── query-handlers/          # Query handlers (CQRS read)
+│   ├── event-handlers/          # Event handlers (async processing)
+│   ├── interfaces/              # Application interfaces
+│   │   ├── commands/            # Command interfaces
+│   │   ├── queries/             # Query interfaces
+│   │   └── repositories/        # Read repository interfaces
+│   └── dtos/                    # Data Transfer Objects (if needed)
+├── infrastructure/              # Infrastructure layer
+│   ├── models/                  # Sequelize models (auto-discovered)
+│   │   ├── *.model.ts          # Model files with modelConfiguration
+│   │   └── associations.ts # Model associations (auto-discovered)
+│   ├── repositories/            # Repository implementations
+│   │   ├── *.repository-impl.ts # Write repositories
+│   │   └── *.read-repository-impl.ts # Read repositories
+│   └── services/                # Service implementations
+├── adapters/                    # Adapters layer
+│   ├── routes/                  # HTTP routes (auto-discovered)
+│   │   └── *.route.ts          # Route files with routeConfiguration
+│   ├── controllers/             # Controllers (service locator)
+│   ├── graphql/                 # GraphQL (auto-discovered, optional)
+│   │   ├── *.schema.ts         # GraphQL schemas
+│   │   └── *.resolvers.ts      # GraphQL resolvers
+│   ├── dtos/                    # Data Transfer Objects
+│   └── schemas.ts               # Request/response schemas
+└── module-configuration.ts      # Module registration (auto-discovered)
+```
+
+**Application-Level Routes:**
+
+Application-level routes (shared across modules) are located in `application/adapters/routes/` and are also automatically discovered.
+
+## Important Notes
+
+- Module structure follows the pattern above with automatic discovery for models, associations, routes, and GraphQL
+- Always refer to the documentation files for detailed architecture and development patterns
+- Follow the validation ordering pattern in command handlers
+- Follow the automatic discovery pattern - no manual registration needed
+- Run validation after code changes
+- Write tests for all new code before marking tasks as complete
+- Test coverage must be 100% (lines, functions, branches, statements)

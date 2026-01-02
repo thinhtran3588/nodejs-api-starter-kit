@@ -1,0 +1,10 @@
+/**
+ * UserGroup domain event types
+ */
+export enum UserGroupEventType {
+  CREATED = 'USER_GROUP_CREATED',
+  UPDATED = 'USER_GROUP_UPDATED',
+  DELETED = 'USER_GROUP_DELETED',
+  ROLE_ADDED = 'ROLE_ADDED_TO_USER_GROUP',
+  ROLE_REMOVED = 'ROLE_REMOVED_FROM_USER_GROUP',
+}

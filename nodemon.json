@@ -1,0 +1,21 @@
+{
+  "watch": [
+    "src",
+    ".env",
+    ".env.development",
+    ".env.production",
+    ".env.staging"
+  ],
+  "ext": "ts,js,json",
+  "ignore": [
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "node_modules",
+    "dist",
+    "*.log"
+  ],
+  "exec": "tsx --inspect src/index.ts",
+  "env": {
+    "NODE_ENV": "development"
+  }
+}
