@@ -199,6 +199,17 @@ Instructions for building and deploying the application, including:
 - AWS ECR deployment (configurable)
 - Production considerations
 
+### [Testing Guide](docs/testing-guide.md)
+
+Comprehensive guide for writing and running tests in this project, including:
+
+- Test configuration and setup
+- Unit and E2E testing strategies
+- Test coverage requirements (100% mandatory)
+- Test utilities and helpers
+- Best practices and patterns
+- Running tests and coverage reports
+
 ### [Working with Cursor](docs/cursor-guide.md)
 
 Guide for using Cursor AI editor with this project, including:
