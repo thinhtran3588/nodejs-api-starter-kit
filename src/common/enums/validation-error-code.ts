@@ -1,0 +1,17 @@
+/**
+ * Common validation error codes that can be reused across different domains
+ * These are generic validation errors for fields
+ */
+export enum ValidationErrorCode {
+  ENTITY_NOT_FOUND = 'ENTITY_NOT_FOUND',
+  ENTITY_ALREADY_EXISTS = 'ENTITY_ALREADY_EXISTS',
+  FIELD_IS_REQUIRED = 'FIELD_IS_REQUIRED',
+  FIELD_IS_INVALID = 'FIELD_IS_INVALID',
+  FIELD_IS_TOO_SHORT = 'FIELD_IS_TOO_SHORT',
+  FIELD_IS_TOO_LONG = 'FIELD_IS_TOO_LONG',
+  FIELD_BELOW_MIN_VALUE = 'FIELD_BELOW_MIN_VALUE',
+  FIELD_ABOVE_MAX_VALUE = 'FIELD_ABOVE_MAX_VALUE',
+  OUTDATED_VERSION = 'OUTDATED_VERSION',
+  MISSING_ID = 'MISSING_ID',
+  NO_UPDATES = 'NO_UPDATES',
+}

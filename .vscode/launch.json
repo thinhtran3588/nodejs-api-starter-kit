@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Node.js",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "nodemon",
+      "cwd": "${workspaceFolder}",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/**",
+        "!**/node_modules/**"
+      ],
+      "restart": true,
+      "autoAttachChildProcesses": true,
+      "stopOnEntry": false,
+      "env": {
+        "SWAGGER_ENABLED": "true",
+        "NODE_ENV": "development"
+      }
+    }
+  ]
+}
