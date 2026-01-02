@@ -1,6 +1,26 @@
 # Node.js Fast API Starter Kit
 
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white)
+![Fastify](https://img.shields.io/badge/Fastify-000000?style=flat&logo=fastify&logoColor=white)
+![RESTful](https://img.shields.io/badge/RESTful-API-FF6F00?style=flat&logo=rest&logoColor=white)
+![GraphQL](https://img.shields.io/badge/GraphQL-E10098?style=flat&logo=graphql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
+
+![Clean Architecture](https://img.shields.io/badge/Clean%20Architecture-000000?style=flat&logo=cleanarchitecture&logoColor=white)
+![Domain-Driven Design](https://img.shields.io/badge/Domain-Driven%20Design-000000?style=flat&logo=domain-driven-design&logoColor=white)
+![CQRS](https://img.shields.io/badge/CQRS-000000?style=flat&logo=cqrs&logoColor=white)
+![Modular Structure](https://img.shields.io/badge/Modular%20Structure-000000?style=flat&logo=modularstructure&logoColor=white)
+![Automatic Discovery](https://img.shields.io/badge/Automatic%20Discovery-000000?style=flat&logo=automaticdiscovery&logoColor=white)
+![Comprehensive Testing](https://img.shields.io/badge/Comprehensive%20Testing-000000?style=flat&logo=comprehensivetesting&logoColor=white)
+
 A production-ready Node.js starter kit for building fast, scalable REST and GraphQL API servers. This starter kit implements Clean Architecture and Domain-Driven Design (DDD) principles with a modular structure, providing a solid foundation for building enterprise-grade APIs.
+
+Test Coverage:
+
+Main: [![codecov](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit/graph/badge.svg?token=b8InPphzTT)](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit)
+
+Develop: [![codecov](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit/branch/develop/graph/badge.svg?token=b8InPphzTT)](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit)
 
 ## Overview
 
