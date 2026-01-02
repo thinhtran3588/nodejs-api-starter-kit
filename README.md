@@ -239,4 +239,4 @@ When contributing to this project, please follow the established patterns and co
 
 ## License
 
-UNLICENSED
+MIT
