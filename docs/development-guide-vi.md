@@ -1,26 +1,26 @@
 # Development Guide
 
-This guide provides step-by-step instructions for adding new features and creating new modules following the Clean Architecture patterns.
+Hướng dẫn này mô tả từng bước thêm tính năng mới và tạo module mới theo các pattern Clean Architecture.
 
-## Table of Contents
+## Mục lục
 
 1. [Git Workflow](#git-workflow)
    - [Development Workflow](#development-workflow)
    - [Branch Naming](#branch-naming)
-2. [Adding a New Feature](#adding-a-new-feature)
-   - [Step 1: Identify the Module](#step-1-identify-the-module)
-   - [Step 2: Create Domain Types](#step-2-create-domain-types-if-needed)
-   - [Step 3: Create Use Case](#step-3-create-use-case)
-   - [Step 4: Register Use Case](#step-4-register-use-case)
-   - [Step 5: Create UI Components](#step-5-create-ui-components)
-   - [Step 6: Add Route](#step-6-add-route)
-   - [Step 7: Write Tests](#step-7-write-tests)
-3. [Creating a New Module](#creating-a-new-module)
-   - [Module Structure](#module-structure)
-   - [Step-by-Step](#step-by-step)
+2. [Thêm tính năng mới](#thêm-tính-năng-mới)
+   - [Bước 1: Xác định Module](#bước-1-xác-định-module)
+   - [Bước 2: Tạo Domain Types](#bước-2-tạo-domain-types-nếu-cần)
+   - [Bước 3: Tạo Use Case](#bước-3-tạo-use-case)
+   - [Bước 4: Đăng ký Use Case](#bước-4-đăng-ký-use-case)
+   - [Bước 5: Tạo UI Components](#bước-5-tạo-ui-components)
+   - [Bước 6: Thêm Route](#bước-6-thêm-route)
+   - [Bước 7: Viết Tests](#bước-7-viết-tests)
+3. [Tạo Module mới](#tạo-module-mới)
+   - [Cấu trúc Module](#cấu-trúc-module)
+   - [Từng bước](#từng-bước)
 4. [Common Patterns](#common-patterns)
    - [Use Case Pattern](#use-case-pattern)
-   - [Form with Validation](#form-with-validation)
+   - [Form với Validation](#form-với-validation)
    - [Interface Implementation](#interface-implementation)
 5. [Testing](#testing)
 
@@ -30,23 +30,23 @@ This guide provides step-by-step instructions for adding new features and creati
 
 ```mermaid
 flowchart TD
-    Start([Start]) --> CheckBranch{Current branch?}
+    Start([Bắt đầu]) --> CheckBranch{Branch hiện tại?}
     CheckBranch -->|main/develop| SwitchDevelop[git checkout develop]
     CheckBranch -->|feature branch| Develop
     SwitchDevelop --> FetchPull[git fetch && git pull]
-    FetchPull --> CreateBranch[Create feature/fix branch]
-    CreateBranch --> Develop[Develop & Write Tests]
+    FetchPull --> CreateBranch[Tạo feature/fix branch]
+    CreateBranch --> Develop[Develop & Viết Tests]
     Develop --> Validate[npm run validate]
     Validate --> Pass{Pass?}
-    Pass -->|No| Develop
-    Pass -->|Yes| Commit[Commit & Push]
-    Commit --> PRExists{PR exists?}
-    PRExists -->|No| CreatePR[Create PR to develop]
-    PRExists -->|Yes| Review
+    Pass -->|Không| Develop
+    Pass -->|Có| Commit[Commit & Push]
+    Commit --> PRExists{PR tồn tại?}
+    PRExists -->|Không| CreatePR[Tạo PR vào develop]
+    PRExists -->|Có| Review
     CreatePR --> Review{Approved?}
-    Review -->|No| Develop
-    Review -->|Yes| Merge[Squash Merge]
-    Merge --> Done([Done])
+    Review -->|Không| Develop
+    Review -->|Có| Merge[Squash Merge]
+    Merge --> Done([Hoàn tất])
 
     style Start fill:#1565c0,color:#fff
     style Done fill:#2e7d32,color:#fff
@@ -54,59 +54,59 @@ flowchart TD
     style Merge fill:#00838f,color:#fff
 ```
 
-### Workflow Steps
+### Các bước Workflow
 
-#### Starting New Work
+#### Bắt đầu công việc mới
 
-1. **Create Feature/Fix Branch**
+1. **Tạo Feature/Fix Branch**
    ```bash
    git checkout develop
    git fetch origin && git pull origin develop
-   git checkout -b feature/your-feature-name   # or fix/your-bug-fix
+   git checkout -b feature/your-feature-name   # hoặc fix/your-bug-fix
    ```
 
-#### Continuing Existing Work
+#### Tiếp tục công việc hiện tại
 
-1. **If already on feature branch**, continue development directly.
+1. **Nếu đã ở feature branch**, tiếp tục develop trực tiếp.
 
-#### Development Cycle
+#### Chu kỳ Development
 
-2. **Develop and Validate**
+2. **Develop và Validate**
    ```bash
-   # Make changes, write tests
-   npm run validate  # Must pass before committing (lint + format + tests with 100% coverage)
+   # Thực hiện thay đổi, viết tests
+   npm run validate  # Phải pass trước khi commit (lint + format + tests với 100% coverage)
    ```
 
-3. **Commit and Push**
+3. **Commit và Push**
    ```bash
-   git add . && git commit -m "feat: description"
+   git add . && git commit -m "feat: mô tả"
    git push -u origin feature/your-feature-name
    ```
 
-4. **Create PR** targeting `develop` branch (if not already created), then squash merge after approval.
+4. **Tạo PR** vào branch `develop` (nếu chưa tạo), sau đó squash merge khi được approve.
 
 ### Branch Naming
 
-| Type | Pattern | Example |
-|------|---------|---------|
-| New feature | `feature/description` | `feature/add-user-profile` |
-| Bug fix | `fix/description` | `fix/login-validation` |
+| Loại | Pattern | Ví dụ |
+|------|---------|-------|
+| Tính năng mới | `feature/description` | `feature/add-user-profile` |
+| Sửa lỗi | `fix/description` | `fix/login-validation` |
 | Hotfix | `hotfix/description` | `hotfix/security-patch` |
 
-## Adding a New Feature
+## Thêm tính năng mới
 
-### Step 1: Identify the Module
+### Bước 1: Xác định Module
 
-Determine which module the feature belongs to:
-- `auth` - Authentication features
-- `books` - Book CRUD operations
-- `settings` - User settings
-- `landing-page` - Public pages
-- Or create a new module (see [Creating a New Module](#creating-a-new-module))
+Xác định module chứa tính năng:
+- `auth` - Tính năng xác thực
+- `books` - Thao tác CRUD sách
+- `settings` - Cài đặt người dùng
+- `landing-page` - Trang công khai
+- Hoặc tạo module mới (xem [Tạo Module mới](#tạo-module-mới))
 
-### Step 2: Create Domain Types (if needed)
+### Bước 2: Tạo Domain Types (nếu cần)
 
-Add types and schemas in `src/modules/{module}/domain/`:
+Thêm types và schemas trong `src/modules/{module}/domain/`:
 
 ```typescript
 // domain/types.ts
@@ -119,15 +119,15 @@ export type NewFeatureData = {
 import { z } from "zod";
 
 export const newFeatureSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "Tên là bắt buộc"),
 });
 
 export type NewFeatureInput = z.infer<typeof newFeatureSchema>;
 ```
 
-### Step 3: Create Use Case
+### Bước 3: Tạo Use Case
 
-Add use case in `src/modules/{module}/application/`:
+Thêm use case trong `src/modules/{module}/application/`:
 
 ```typescript
 // application/create-feature-use-case.ts
@@ -149,9 +149,9 @@ export class CreateFeatureUseCase extends BaseUseCase<Input, Output> {
 }
 ```
 
-### Step 4: Register Use Case
+### Bước 4: Đăng ký Use Case
 
-Update `src/modules/{module}/module-configuration.ts`:
+Cập nhật `src/modules/{module}/module-configuration.ts`:
 
 ```typescript
 import { asFunction } from "awilix";
@@ -166,9 +166,9 @@ export function registerModule(container: AwilixContainer<object>): void {
 }
 ```
 
-### Step 5: Create UI Components
+### Bước 5: Tạo UI Components
 
-Add page in `src/modules/{module}/presentation/pages/{page}/`:
+Thêm page trong `src/modules/{module}/presentation/pages/{page}/`:
 
 ```typescript
 // presentation/pages/new-feature/page.tsx
@@ -178,13 +178,13 @@ import { useContainer } from "@/common/hooks/use-container";
 
 export function NewFeaturePage() {
   const { createFeatureUseCase } = useContainer();
-  // ... component logic
+  // ... logic component
 }
 ```
 
-### Step 6: Add Route
+### Bước 6: Thêm Route
 
-Create route in `app/[locale]/`:
+Tạo route trong `app/[locale]/`:
 
 ```typescript
 // app/[locale]/(main)/new-feature/page.tsx
@@ -195,22 +195,22 @@ export default function Page() {
 }
 ```
 
-### Step 7: Write Tests
+### Bước 7: Viết Tests
 
-Add tests in `src/__tests__/modules/{module}/`:
+Thêm tests trong `src/__tests__/modules/{module}/`:
 
 ```typescript
 // __tests__/modules/{module}/application/create-feature-use-case.test.ts
 describe("CreateFeatureUseCase", () => {
-  it("creates feature successfully", async () => {
-    // ... test implementation
+  it("tạo feature thành công", async () => {
+    // ... implementation test
   });
 });
 ```
 
-## Creating a New Module
+## Tạo Module mới
 
-### Module Structure
+### Cấu trúc Module
 
 ```text
 src/modules/{module-name}/
@@ -221,38 +221,38 @@ src/modules/{module-name}/
 ├── application/
 │   └── {use-case}-use-case.ts
 ├── infrastructure/
-│   ├── services/             # External service implementations
-│   └── repositories/         # Data access implementations
+│   ├── services/             # Triển khai external service
+│   └── repositories/         # Triển khai data access
 ├── presentation/
-│   ├── components/           # Module-shared components
-│   ├── hooks/                # Module hooks (Zustand stores, etc.)
+│   ├── components/           # Components dùng chung module
+│   ├── hooks/                # Module hooks (Zustand stores, v.v.)
 │   └── pages/
 │       └── {page}/
 │           ├── page.tsx
-│           └── components/   # Page-specific components
-├── utils/                    # Module utilities
-└── module-configuration.ts   # DI registration
+│           └── components/   # Components riêng trang
+├── utils/                    # Utilities module
+└── module-configuration.ts   # Đăng ký DI
 ```
 
-### Step-by-Step
+### Từng bước
 
-1. **Create folder structure** following the template above
+1. **Tạo cấu trúc folder** theo template trên
 
-2. **Define domain** (`domain/types.ts`, `domain/schemas.ts`, `domain/interfaces.ts`)
+2. **Định nghĩa domain** (`domain/types.ts`, `domain/schemas.ts`, `domain/interfaces.ts`)
 
-3. **Implement infrastructure** (services/repositories that implement interfaces)
+3. **Triển khai infrastructure** (services/repositories implement interfaces)
 
-4. **Create use cases** in `application/`
+4. **Tạo use cases** trong `application/`
 
-5. **Register in DI container** (`module-configuration.ts`):
+5. **Đăng ký vào DI container** (`module-configuration.ts`):
    ```typescript
    export function registerModule(container: AwilixContainer<object>): void {
      container.register({
-       // Register services/repositories
+       // Đăng ký services/repositories
        featureRepository: asFunction(
          (cradle) => new FirestoreFeatureRepository(cradle.getFirestoreInstance)
        ).singleton(),
-       // Register use cases
+       // Đăng ký use cases
        createFeatureUseCase: asFunction(
          (cradle) => new CreateFeatureUseCase(cradle.featureRepository)
        ).singleton(),
@@ -260,21 +260,21 @@ src/modules/{module-name}/
    }
    ```
 
-6. **Register module** in `src/application/register-container.ts`:
+6. **Đăng ký module** trong `src/application/register-container.ts`:
    ```typescript
    import { registerModule as registerFeatureModule } from "@/modules/feature/module-configuration";
    
    export function registerContainer(container: AwilixContainer<object>): void {
-     // ... existing registrations
+     // ... đăng ký hiện có
      registerFeatureModule(container);
    }
    ```
 
-7. **Create presentation layer** (pages, components, hooks)
+7. **Tạo presentation layer** (pages, components, hooks)
 
-8. **Add routes** in `app/[locale]/`
+8. **Thêm routes** trong `app/[locale]/`
 
-9. **Write tests** mirroring the module structure in `src/__tests__/`
+9. **Viết tests** phản chiếu cấu trúc module trong `src/__tests__/`
 
 ## Common Patterns
 
@@ -287,13 +287,13 @@ export class MyUseCase extends BaseUseCase<Input, Output> {
   }
 
   async execute(input: Input): Promise<Output> {
-    // Orchestrate the flow
+    // Điều phối luồng
     return this.service.doSomething(input);
   }
 }
 ```
 
-### Form with Validation
+### Form với Validation
 
 ```typescript
 const form = useForm<FormData>({
@@ -306,10 +306,10 @@ const onSubmit = async (data: FormData) => {
 };
 ```
 
-### Resolving Use Cases
+### Resolve Use Cases
 
 ```typescript
-// In components
+// Trong components
 const { myUseCase } = useContainer();
 await myUseCase.execute(input);
 ```
@@ -331,17 +331,16 @@ export class FirestoreFeatureRepository implements FeatureRepository {
 
 ## Testing
 
-### Quick Reference
+### Tham khảo nhanh
 
-| Command | Purpose |
-|---------|---------|
-| `npm test` | Run all tests |
-| `npm run test:coverage` | Run with coverage report |
-| `npm run validate` | Full validation (includes tests) |
+| Lệnh | Mục đích |
+|------|----------|
+| `npm test` | Chạy tất cả tests |
+| `npm run test:coverage` | Chạy với báo cáo coverage |
+| `npm run validate` | Validation đầy đủ (bao gồm tests) |
 
-### Key Points
+### Điểm chính
 
-- **100% code coverage** required
-- Tests mirror source structure in `src/__tests__/`
-- Mock services/repositories at the boundary
-
+- **100% code coverage** là bắt buộc
+- Tests phản chiếu cấu trúc source trong `src/__tests__/`
+- Mock services/repositories tại boundary

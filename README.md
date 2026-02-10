@@ -1,252 +1,92 @@
-# Node.js Fast API Starter Kit
+# Node.js API Starter Kit
+
+[![CI - Main](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-main.yml/badge.svg?branch=main)](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-main.yml)
+[![codecov - Main](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit/graph/badge.svg?token=b8InPphzTT)](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit)
+
+[![CI - Develop](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-develop.yml/badge.svg?branch=develop)](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-develop.yml)
+[![codecov - Develop](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit/branch/develop/graph/badge.svg?token=b8InPphzTT)](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit)
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=node.js&logoColor=white)
 ![Fastify](https://img.shields.io/badge/Fastify-000000?style=flat&logo=fastify&logoColor=white)
-![RESTful](https://img.shields.io/badge/RESTful-API-FF6F00?style=flat&logo=rest&logoColor=white)
-![GraphQL](https://img.shields.io/badge/GraphQL-E10098?style=flat&logo=graphql&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=flat&logo=postgresql&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black)
+![GraphQL](https://img.shields.io/badge/GraphQL-E10098?style=flat&logo=graphql&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-DD2C00?style=flat&logo=firebase&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-6E9F18?style=flat&logo=vitest&logoColor=white)
 
-![Clean Architecture](https://img.shields.io/badge/Clean%20Architecture-000000?style=flat&logo=cleanarchitecture&logoColor=white)
-![Domain-Driven Design](https://img.shields.io/badge/Domain-Driven%20Design-000000?style=flat&logo=domain-driven-design&logoColor=white)
-![CQRS](https://img.shields.io/badge/CQRS-000000?style=flat&logo=cqrs&logoColor=white)
-![Modular Structure](https://img.shields.io/badge/Modular%20Structure-000000?style=flat&logo=modularstructure&logoColor=white)
-![Automatic Discovery](https://img.shields.io/badge/Automatic%20Discovery-000000?style=flat&logo=automaticdiscovery&logoColor=white)
-![Comprehensive Testing](https://img.shields.io/badge/Comprehensive%20Testing-000000?style=flat&logo=comprehensivetesting&logoColor=white)
+A production-ready Node.js starter kit for building fast, scalable REST and GraphQL API servers with Clean Architecture, DDD, and CQRS.
 
-A production-ready Node.js starter kit for building fast, scalable REST and GraphQL API servers. This starter kit implements Clean Architecture and Domain-Driven Design (DDD) principles with a modular structure, providing a solid foundation for building enterprise-grade APIs.
+## Features
 
-Branches:
+- **Clean Architecture + DDD** — Domain, Application, Infrastructure, Adapters layers with Awilix DI
+- **CQRS Pattern** — Separate command and query handlers for optimized reads and writes
+- **Modular Structure** — Feature modules under `src/modules/` with automatic discovery
+- **Tech Stack** — Fastify, TypeScript (strict), PostgreSQL, Sequelize ORM, Mercurius (GraphQL)
+- **Auth & Security** — Firebase Admin SDK, JWT, input sanitization, rate limiting, CORS
+- **Testing** — Vitest with 100% coverage requirement (lines, functions, branches, statements)
+- **Domain Events** — Event-driven architecture with async processing and optimistic locking
 
-Main: [![CI](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-main.yml/badge.svg?branch=main)](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-main.yml)
-[![codecov](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit/graph/badge.svg?token=b8InPphzTT)](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit)
-
-Develop: [![CI](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-develop.yml/badge.svg?branch=develop)](https://github.com/thinhtran3588/nodejs-api-starter-kit/actions/workflows/ci-develop.yml)
-[![codecov](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit/branch/develop/graph/badge.svg?token=b8InPphzTT)](https://codecov.io/github/thinhtran3588/nodejs-api-starter-kit)
-
-## Overview
-
-This starter kit provides a complete, battle-tested architecture for building API servers with:
-
-- **Clean Architecture**: Layered architecture with clear separation of concerns
-- **Domain-Driven Design**: Rich domain models with business logic encapsulation
-- **CQRS Pattern**: Separate command and query handlers for optimized reads and writes
-- **Modular Structure**: Module-based organization for scalable codebases
-- **Automatic Discovery**: Convention-based discovery for modules, models, routes, and GraphQL schemas
-- **Comprehensive Testing**: Built-in testing infrastructure with 100% coverage requirement
-
-## Tech Stack
-
-### Core Framework & Language
-
-- **Node.js**: JavaScript runtime
-- **TypeScript**: Type-safe development with strict mode
-- **Fastify**: High-performance web framework
-- **ES Modules (ESM)**: Modern JavaScript module system
-
-### Database & ORM
-
-- **PostgreSQL**: Relational database
-- **Sequelize**: TypeScript ORM with migrations support
-
-### API Interfaces
-
-- **REST API**: Fastify routes with OpenAPI/Swagger documentation
-- **GraphQL**: Mercurius integration with automatic schema and resolver discovery
-
-### Authentication & Security
-
-- **Firebase Admin SDK**: Firebase Authentication integration
-- **JWT**: JSON Web Tokens for access token generation
-- **Input Sanitization**: HTML sanitization to prevent XSS attacks
-- **Rate Limiting**: Built-in rate limiting for API protection
-- **CORS**: Configurable cross-origin resource sharing
-
-### Dependency Injection & Architecture
-
-- **Awilix**: Dependency injection container with constructor injection
-- **Service Locator Pattern**: Used in controllers for flexible dependency resolution
-
-### Testing
-
-- **Vitest**: Fast unit testing framework
-- **100% Coverage Requirement**: **MANDATORY** - Strictly enforced test coverage for all code
-  - **Lines**: 100% coverage required
-  - **Functions**: 100% coverage required
-  - **Branches**: 100% coverage required (including nullish coalescing, ternary operators, conditionals)
-  - **Statements**: 100% coverage required
-  - Validation fails if coverage drops below 100% for any metric
-
-### Development Tools
-
-- **ESLint**: Code linting with TypeScript support
-- **Prettier**: Code formatting
-- **Nodemon**: Development server with hot reload
-- **TypeScript Compiler**: Type checking and compilation
-
-### Deployment
-
-- **Docker**: Multi-stage Docker builds
-- **AWS ECR**: Container registry support (configurable)
-
-## Key Features
-
-- **Modular Architecture**: Module-based structure following Clean Architecture and DDD principles
-- **Automatic Discovery**: Convention-based automatic discovery for modules, models, associations, routes, and GraphQL - no manual registration needed
-- **Dependency Injection**: Awilix-powered DI container for loose coupling and testability
-- **Input Validation & Sanitization**: Comprehensive validation pipeline with HTML sanitization
-- **Error Handling**: Centralized error code registry with consistent error response format
-- **API Documentation**: OpenAPI/Swagger integration with automatic schema generation
-- **GraphQL API**: GraphQL integration with automatic schema and resolver discovery
-- **Rate Limiting**: Built-in rate limiting to protect API endpoints
-- **CORS Support**: Configurable CORS for cross-origin requests
-- **Domain Events**: Event-driven architecture with async event processing
-- **Optimistic Locking**: Built-in optimistic locking to prevent concurrent modification conflicts
-- **Comprehensive Testing**: Unit, integration, and E2E test infrastructure
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v18 or higher)
-- PostgreSQL database
-- npm or yarn
-
-### Installation
-
-1. Clone the repository:
-
-```bash
-git clone <repository-url>
-cd <project-directory>
-```
-
-2. Install dependencies:
+## Quick Start
 
 ```bash
 npm install
-```
-
-3. Set up environment variables:
-
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-# Configure WRITE_DATABASE_URI and READ_DATABASE_URI for database connections
-```
-
-4. Run database migrations:
-
-```bash
+cp .env.example .env  # Edit with your database config
 npm run migrate
-```
-
-5. Start the development server:
-
-```bash
 npm run dev
 ```
 
-The API will be available at `http://localhost:3000` (or your configured port).
+The API runs at `http://localhost:3000`.
 
-### Available Scripts
+## Scripts
 
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build TypeScript to JavaScript
-- `npm start` - Run production server
-- `npm test` - Run tests
-- `npm run test:coverage` - Run tests with coverage report
-- `npm run lint` - Run ESLint
-- `npm run format` - Format code with Prettier
-- `npm run validate` - Run full validation (type check, lint, format check, tests)
-- `npm run migrate` - Run database migrations
-- `npm run migrate:down` - Rollback last migration
-- `npm run migrate:status` - Check migration status
-- `npm run migrate:create` - Create a new migration
+| Command              | Description                                     |
+| -------------------- | ----------------------------------------------- |
+| `npm run dev`        | Start development server with hot reload        |
+| `npm run build`      | Build TypeScript to JavaScript                  |
+| `npm run validate`   | Run lint, format check, and tests with coverage |
+| `npm run migrate`    | Run database migrations                         |
 
 ## Documentation
 
-Comprehensive documentation is available in the `docs/` folder:
+| Document                                             | Description                                               |
+| ---------------------------------------------------- | --------------------------------------------------------- |
+| [Architecture](docs/architecture.md)                 | Layers, data flow, design patterns, DI with Awilix        |
+| [Coding Conventions](docs/coding-conventions.md)     | File naming, code style, validation ordering, discovery    |
+| [Development Guide](docs/development-guide.md)       | Git workflow, adding features, creating modules            |
+| [Testing Guide](docs/testing-guide.md)               | Test organization, 100% coverage, best practices           |
+| [Firebase Integration](docs/firebase-integration.md) | Admin SDK setup, token verification, user management       |
+| [Deployment](docs/deployment.md)                     | Docker builds, environment variables, production checklist |
 
-### [Architecture Guide](docs/architecture.md)
+## AI Agent Integration
 
-Detailed explanation of the Clean Architecture and DDD principles, layer responsibilities, module structure, design patterns, and technology stack. This guide covers:
+This project includes configuration for AI-assisted development, supporting both [Antigravity](https://github.com/google-deepmind/antigravity) and [Cursor](https://cursor.com/).
 
-- Architecture overview and layer structure
-- Data flow diagrams (REST and GraphQL)
-- Layer responsibilities and components
-- Critical design patterns (CQRS, Repository Pattern, Domain Events, etc.)
-- Module structure and automatic discovery
-- Application bootstrap process
+### Antigravity
 
-### [Development Guide](docs/development-guide.md)
+| Path                                   | Purpose                                       |
+| -------------------------------------- | --------------------------------------------- |
+| `.agent/workflows/branch-and-pr.md`    | Mandatory Git workflow and validation process |
+| `.agent/skills/project-rules/SKILL.md` | Project conventions and code style            |
+| `.agent/skills/`                       | Specialized skills (reviewer, backend, arch)  |
 
-Step-by-step instructions for creating new features and modules. This guide includes:
+### Cursor
 
-- Adding new features to existing modules
-- Creating new modules from scratch
-- Common patterns and best practices
-- Testing guidelines and examples
-- Code conventions and style guidelines
+| Path                                       | Purpose                                          |
+| ------------------------------------------ | ------------------------------------------------ |
+| `.cursor/rules/general.mdc`                | Project conventions and code style               |
+| `.cursor/rules/branch-and-pr-workflow.mdc` | Git workflow, validation, and PR creation        |
+| `.cursor/skills/`                          | Specialized agents (code review, backend, arch)  |
 
-### [Deployment Guide](docs/deployment.md)
-
-Instructions for building and deploying the application, including:
-
-- Docker build and deployment
-- Environment variable configuration
-- AWS ECR deployment (configurable)
-- Production considerations
-
-### [Testing Guide](docs/testing-guide.md)
-
-Comprehensive guide for writing and running tests in this project, including:
-
-- Test configuration and setup
-- Unit and E2E testing strategies
-- Test coverage requirements (100% mandatory)
-- Test utilities and helpers
-- Best practices and patterns
-- Running tests and coverage reports
-
-### [Working with Cursor](docs/cursor-guide.md)
-
-Guide for using Cursor AI editor with this project, including:
-
-- Cursor rules and configuration
-- Branch and PR workflow automation
-- Code quality and validation rules
-- AI-assisted development patterns
-
-## Project Structure
-
-```
-├── src/
-│   ├── modules/                # Feature modules
-│   │   └── {module-name}/
-│   │       ├── domain/         # Domain layer (aggregates, value objects, interfaces)
-│   │       ├── application/    # Application layer (command/query handlers, DTOs)
-│   │       ├── infrastructure/ # Infrastructure layer (repositories, models, services)
-│   │       └── adapters/       # Adapters layer (routes, controllers, GraphQL)
-│   ├── application/            # Application-level routes and GraphQL
-│   ├── common/                 # Shared utilities and base classes
-│   └── index.ts                # Application entry point
-├── docs/                       # Documentation
-├── sequelize/                  # Database migrations
-├── .cursor/                    # Cursor AI editor configuration
-└── package.json
-```
+For other AI tools, copy rules to the agent's config location and adapt as needed.
 
 ## Contributing
 
-When contributing to this project, please follow the established patterns and conventions:
-
 1. Create a feature branch from `develop`
-2. Follow the code conventions and architecture patterns
-3. Write tests for all new code (100% coverage required)
-4. Run `npm run validate` before committing
-5. Follow the branch and PR workflow (see [Cursor Guide](docs/cursor-guide.md))
+2. Write/update tests to maintain 100% coverage
+3. Run `npm run validate` before committing
+4. Open a Pull Request targeting `develop`
+
+See [Development Guide](docs/development-guide.md) for detailed workflow.
 
 ## License
 

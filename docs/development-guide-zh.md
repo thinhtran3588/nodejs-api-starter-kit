@@ -1,26 +1,26 @@
 # Development Guide
 
-This guide provides step-by-step instructions for adding new features and creating new modules following the Clean Architecture patterns.
+本指南提供按 Clean Architecture patterns 添加新功能和创建新模块的分步说明。
 
-## Table of Contents
+## 目录
 
 1. [Git Workflow](#git-workflow)
    - [Development Workflow](#development-workflow)
    - [Branch Naming](#branch-naming)
-2. [Adding a New Feature](#adding-a-new-feature)
-   - [Step 1: Identify the Module](#step-1-identify-the-module)
-   - [Step 2: Create Domain Types](#step-2-create-domain-types-if-needed)
-   - [Step 3: Create Use Case](#step-3-create-use-case)
-   - [Step 4: Register Use Case](#step-4-register-use-case)
-   - [Step 5: Create UI Components](#step-5-create-ui-components)
-   - [Step 6: Add Route](#step-6-add-route)
-   - [Step 7: Write Tests](#step-7-write-tests)
-3. [Creating a New Module](#creating-a-new-module)
-   - [Module Structure](#module-structure)
-   - [Step-by-Step](#step-by-step)
+2. [添加新功能](#添加新功能)
+   - [步骤 1：确定 Module](#步骤-1确定-module)
+   - [步骤 2：创建 Domain Types](#步骤-2创建-domain-types如需要)
+   - [步骤 3：创建 Use Case](#步骤-3创建-use-case)
+   - [步骤 4：注册 Use Case](#步骤-4注册-use-case)
+   - [步骤 5：创建 UI Components](#步骤-5创建-ui-components)
+   - [步骤 6：添加 Route](#步骤-6添加-route)
+   - [步骤 7：编写 Tests](#步骤-7编写-tests)
+3. [创建新 Module](#创建新-module)
+   - [Module 结构](#module-结构)
+   - [分步说明](#分步说明)
 4. [Common Patterns](#common-patterns)
    - [Use Case Pattern](#use-case-pattern)
-   - [Form with Validation](#form-with-validation)
+   - [Form 与 Validation](#form-与-validation)
    - [Interface Implementation](#interface-implementation)
 5. [Testing](#testing)
 
@@ -30,23 +30,23 @@ This guide provides step-by-step instructions for adding new features and creati
 
 ```mermaid
 flowchart TD
-    Start([Start]) --> CheckBranch{Current branch?}
+    Start([开始]) --> CheckBranch{当前分支?}
     CheckBranch -->|main/develop| SwitchDevelop[git checkout develop]
     CheckBranch -->|feature branch| Develop
     SwitchDevelop --> FetchPull[git fetch && git pull]
-    FetchPull --> CreateBranch[Create feature/fix branch]
-    CreateBranch --> Develop[Develop & Write Tests]
+    FetchPull --> CreateBranch[创建 feature/fix 分支]
+    CreateBranch --> Develop[开发 & 编写 Tests]
     Develop --> Validate[npm run validate]
-    Validate --> Pass{Pass?}
-    Pass -->|No| Develop
-    Pass -->|Yes| Commit[Commit & Push]
-    Commit --> PRExists{PR exists?}
-    PRExists -->|No| CreatePR[Create PR to develop]
-    PRExists -->|Yes| Review
+    Validate --> Pass{通过?}
+    Pass -->|否| Develop
+    Pass -->|是| Commit[Commit & Push]
+    Commit --> PRExists{PR 已存在?}
+    PRExists -->|否| CreatePR[创建 PR 到 develop]
+    PRExists -->|是| Review
     CreatePR --> Review{Approved?}
-    Review -->|No| Develop
-    Review -->|Yes| Merge[Squash Merge]
-    Merge --> Done([Done])
+    Review -->|否| Develop
+    Review -->|是| Merge[Squash Merge]
+    Merge --> Done([完成])
 
     style Start fill:#1565c0,color:#fff
     style Done fill:#2e7d32,color:#fff
@@ -54,59 +54,59 @@ flowchart TD
     style Merge fill:#00838f,color:#fff
 ```
 
-### Workflow Steps
+### Workflow 步骤
 
-#### Starting New Work
+#### 开始新工作
 
-1. **Create Feature/Fix Branch**
+1. **创建 Feature/Fix Branch**
    ```bash
    git checkout develop
    git fetch origin && git pull origin develop
-   git checkout -b feature/your-feature-name   # or fix/your-bug-fix
+   git checkout -b feature/your-feature-name   # 或 fix/your-bug-fix
    ```
 
-#### Continuing Existing Work
+#### 继续现有工作
 
-1. **If already on feature branch**, continue development directly.
+1. **如果已在 feature branch**，直接继续开发。
 
-#### Development Cycle
+#### 开发周期
 
-2. **Develop and Validate**
+2. **开发与 Validate**
    ```bash
-   # Make changes, write tests
-   npm run validate  # Must pass before committing (lint + format + tests with 100% coverage)
+   # 修改代码，编写 tests
+   npm run validate  # 提交前必须通过（lint + format + tests 100% coverage）
    ```
 
-3. **Commit and Push**
+3. **Commit 与 Push**
    ```bash
-   git add . && git commit -m "feat: description"
+   git add . && git commit -m "feat: 描述"
    git push -u origin feature/your-feature-name
    ```
 
-4. **Create PR** targeting `develop` branch (if not already created), then squash merge after approval.
+4. **创建 PR** 到 `develop` 分支（如尚未创建），approve 后 squash merge。
 
 ### Branch Naming
 
-| Type | Pattern | Example |
-|------|---------|---------|
-| New feature | `feature/description` | `feature/add-user-profile` |
-| Bug fix | `fix/description` | `fix/login-validation` |
+| 类型 | Pattern | 示例 |
+|------|---------|------|
+| 新功能 | `feature/description` | `feature/add-user-profile` |
+| 修复 | `fix/description` | `fix/login-validation` |
 | Hotfix | `hotfix/description` | `hotfix/security-patch` |
 
-## Adding a New Feature
+## 添加新功能
 
-### Step 1: Identify the Module
+### 步骤 1：确定 Module
 
-Determine which module the feature belongs to:
-- `auth` - Authentication features
-- `books` - Book CRUD operations
-- `settings` - User settings
-- `landing-page` - Public pages
-- Or create a new module (see [Creating a New Module](#creating-a-new-module))
+确定功能所属的 module：
+- `auth` - 认证功能
+- `books` - 图书 CRUD 操作
+- `settings` - 用户设置
+- `landing-page` - 公开页面
+- 或创建新 module（见 [创建新 Module](#创建新-module)）
 
-### Step 2: Create Domain Types (if needed)
+### 步骤 2：创建 Domain Types（如需要）
 
-Add types and schemas in `src/modules/{module}/domain/`:
+在 `src/modules/{module}/domain/` 中添加 types 和 schemas：
 
 ```typescript
 // domain/types.ts
@@ -119,15 +119,15 @@ export type NewFeatureData = {
 import { z } from "zod";
 
 export const newFeatureSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, "名称必填"),
 });
 
 export type NewFeatureInput = z.infer<typeof newFeatureSchema>;
 ```
 
-### Step 3: Create Use Case
+### 步骤 3：创建 Use Case
 
-Add use case in `src/modules/{module}/application/`:
+在 `src/modules/{module}/application/` 中添加 use case：
 
 ```typescript
 // application/create-feature-use-case.ts
@@ -149,9 +149,9 @@ export class CreateFeatureUseCase extends BaseUseCase<Input, Output> {
 }
 ```
 
-### Step 4: Register Use Case
+### 步骤 4：注册 Use Case
 
-Update `src/modules/{module}/module-configuration.ts`:
+更新 `src/modules/{module}/module-configuration.ts`：
 
 ```typescript
 import { asFunction } from "awilix";
@@ -166,9 +166,9 @@ export function registerModule(container: AwilixContainer<object>): void {
 }
 ```
 
-### Step 5: Create UI Components
+### 步骤 5：创建 UI Components
 
-Add page in `src/modules/{module}/presentation/pages/{page}/`:
+在 `src/modules/{module}/presentation/pages/{page}/` 中添加 page：
 
 ```typescript
 // presentation/pages/new-feature/page.tsx
@@ -178,13 +178,13 @@ import { useContainer } from "@/common/hooks/use-container";
 
 export function NewFeaturePage() {
   const { createFeatureUseCase } = useContainer();
-  // ... component logic
+  // ... component 逻辑
 }
 ```
 
-### Step 6: Add Route
+### 步骤 6：添加 Route
 
-Create route in `app/[locale]/`:
+在 `app/[locale]/` 中创建 route：
 
 ```typescript
 // app/[locale]/(main)/new-feature/page.tsx
@@ -195,22 +195,22 @@ export default function Page() {
 }
 ```
 
-### Step 7: Write Tests
+### 步骤 7：编写 Tests
 
-Add tests in `src/__tests__/modules/{module}/`:
+在 `src/__tests__/modules/{module}/` 中添加 tests：
 
 ```typescript
 // __tests__/modules/{module}/application/create-feature-use-case.test.ts
 describe("CreateFeatureUseCase", () => {
-  it("creates feature successfully", async () => {
+  it("成功创建 feature", async () => {
     // ... test implementation
   });
 });
 ```
 
-## Creating a New Module
+## 创建新 Module
 
-### Module Structure
+### Module 结构
 
 ```text
 src/modules/{module-name}/
@@ -221,38 +221,38 @@ src/modules/{module-name}/
 ├── application/
 │   └── {use-case}-use-case.ts
 ├── infrastructure/
-│   ├── services/             # External service implementations
-│   └── repositories/         # Data access implementations
+│   ├── services/             # 外部服务实现
+│   └── repositories/         # 数据访问实现
 ├── presentation/
-│   ├── components/           # Module-shared components
-│   ├── hooks/                # Module hooks (Zustand stores, etc.)
+│   ├── components/           # 模块共享组件
+│   ├── hooks/                # 模块 hooks（Zustand stores 等）
 │   └── pages/
 │       └── {page}/
 │           ├── page.tsx
-│           └── components/   # Page-specific components
-├── utils/                    # Module utilities
-└── module-configuration.ts   # DI registration
+│           └── components/   # 页面专属组件
+├── utils/                    # 模块工具
+└── module-configuration.ts   # DI 注册
 ```
 
-### Step-by-Step
+### 分步说明
 
-1. **Create folder structure** following the template above
+1. **按上述模板创建目录结构**
 
-2. **Define domain** (`domain/types.ts`, `domain/schemas.ts`, `domain/interfaces.ts`)
+2. **定义 domain**（`domain/types.ts`、`domain/schemas.ts`、`domain/interfaces.ts`）
 
-3. **Implement infrastructure** (services/repositories that implement interfaces)
+3. **实现 infrastructure**（services/repositories 实现 interfaces）
 
-4. **Create use cases** in `application/`
+4. **创建 use cases** 在 `application/`
 
-5. **Register in DI container** (`module-configuration.ts`):
+5. **注册到 DI container**（`module-configuration.ts`）：
    ```typescript
    export function registerModule(container: AwilixContainer<object>): void {
      container.register({
-       // Register services/repositories
+       // 注册 services/repositories
        featureRepository: asFunction(
          (cradle) => new FirestoreFeatureRepository(cradle.getFirestoreInstance)
        ).singleton(),
-       // Register use cases
+       // 注册 use cases
        createFeatureUseCase: asFunction(
          (cradle) => new CreateFeatureUseCase(cradle.featureRepository)
        ).singleton(),
@@ -260,21 +260,21 @@ src/modules/{module-name}/
    }
    ```
 
-6. **Register module** in `src/application/register-container.ts`:
+6. **在 `src/application/register-container.ts` 中注册 module**：
    ```typescript
    import { registerModule as registerFeatureModule } from "@/modules/feature/module-configuration";
    
    export function registerContainer(container: AwilixContainer<object>): void {
-     // ... existing registrations
+     // ... 现有注册
      registerFeatureModule(container);
    }
    ```
 
-7. **Create presentation layer** (pages, components, hooks)
+7. **创建 presentation layer**（pages、components、hooks）
 
-8. **Add routes** in `app/[locale]/`
+8. **添加 routes** 在 `app/[locale]/`
 
-9. **Write tests** mirroring the module structure in `src/__tests__/`
+9. **编写 tests** 在 `src/__tests__/` 中镜像 module 结构
 
 ## Common Patterns
 
@@ -287,13 +287,13 @@ export class MyUseCase extends BaseUseCase<Input, Output> {
   }
 
   async execute(input: Input): Promise<Output> {
-    // Orchestrate the flow
+    // 编排流程
     return this.service.doSomething(input);
   }
 }
 ```
 
-### Form with Validation
+### Form 与 Validation
 
 ```typescript
 const form = useForm<FormData>({
@@ -306,10 +306,10 @@ const onSubmit = async (data: FormData) => {
 };
 ```
 
-### Resolving Use Cases
+### 解析 Use Cases
 
 ```typescript
-// In components
+// 在 components 中
 const { myUseCase } = useContainer();
 await myUseCase.execute(input);
 ```
@@ -331,17 +331,16 @@ export class FirestoreFeatureRepository implements FeatureRepository {
 
 ## Testing
 
-### Quick Reference
+### 快速参考
 
-| Command | Purpose |
-|---------|---------|
-| `npm test` | Run all tests |
-| `npm run test:coverage` | Run with coverage report |
-| `npm run validate` | Full validation (includes tests) |
+| 命令 | 用途 |
+|------|------|
+| `npm test` | 运行所有 tests |
+| `npm run test:coverage` | 运行并生成 coverage 报告 |
+| `npm run validate` | 完整 validation（包含 tests） |
 
-### Key Points
+### 要点
 
-- **100% code coverage** required
-- Tests mirror source structure in `src/__tests__/`
-- Mock services/repositories at the boundary
-
+- **100% code coverage** 为必需
+- Tests 在 `src/__tests__/` 中镜像源码结构
+- 在边界处 mock services/repositories

@@ -2,6 +2,17 @@
 
 This guide provides instructions for building and deploying the API application.
 
+## Table of Contents
+
+1. [Build and Push Docker Image](#build-and-push-docker-image)
+2. [Docker Build](#docker-build)
+3. [Environment Variables](#environment-variables)
+4. [Database Migrations](#database-migrations)
+5. [Health Check](#health-check)
+6. [Production Checklist](#production-checklist)
+7. [Docker Compose](#docker-compose)
+8. [Troubleshooting](#troubleshooting)
+
 ## Build and Push Docker Image
 
 Build and push the Docker image to your container registry (e.g., AWS ECR, Docker Hub):

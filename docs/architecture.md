@@ -2,6 +2,22 @@
 
 This API follows **Clean Architecture** and **Domain-Driven Design (DDD)** principles, implementing **CQRS (Command Query Responsibility Segregation)** with command and query handlers. The application is modular, maintainable, and testable.
 
+## Table of Contents
+
+1. [Architecture Overview](#architecture-overview)
+2. [Layer Structure](#layer-structure)
+3. [Data Flow](#data-flow)
+4. [Layer Responsibilities](#layer-responsibilities)
+   - [Domain Layer](#1-domain-layer-domain)
+   - [Application Layer](#2-application-layer-application)
+   - [Infrastructure Layer](#3-infrastructure-layer-infrastructure)
+   - [Adapters Layer](#4-adapters-layer-adapters)
+5. [Module Structure](#module-structure)
+6. [Critical Design Patterns](#critical-design-patterns)
+7. [Critical Features](#critical-features)
+8. [Application Bootstrap](#application-bootstrap)
+9. [Technology Stack](#technology-stack)
+
 ## Architecture Overview
 
 The solution is organized into layers that enforce separation of concerns and dependency inversion:
