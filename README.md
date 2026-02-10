@@ -14,6 +14,8 @@
 ![Firebase](https://img.shields.io/badge/Firebase-DD2C00?style=flat&logo=firebase&logoColor=white)
 ![Vitest](https://img.shields.io/badge/Vitest-6E9F18?style=flat&logo=vitest&logoColor=white)
 
+**English** | [Tiếng Việt](README-vi.md) | [中文](README-zh.md)
+
 A production-ready Node.js starter kit for building fast, scalable REST and GraphQL API servers with Clean Architecture, DDD, and CQRS.
 
 ## Features
