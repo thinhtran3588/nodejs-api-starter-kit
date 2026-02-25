@@ -88,7 +88,7 @@ The application uses two separate database connections for read and write operat
 **Swagger Configuration:**
 
 - `SWAGGER_ENABLED`: Enable Swagger UI (true/false, default: false)
-- `SWAGGER_DOCUMENTATION_ROUTE`: Swagger UI route prefix (default: `/api`)
+- `SWAGGER_DOCUMENTATION_ROUTE`: Swagger UI route prefix (default: `/api/docs`)
 - `SWAGGER_CONTACT_NAME`: Contact name for API documentation
 - `SWAGGER_CONTACT_EMAIL`: Contact email for API documentation
 - `SWAGGER_CONTACT_URL`: Contact URL for API documentation
