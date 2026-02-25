@@ -1,6 +1,8 @@
-import { ValidationErrorCode } from '@app/common/enums/validation-error-code';
-import { type ErrorValidationResult } from '@app/common/interfaces/error';
-import { validate } from '@app/common/utils/validate';
+import {
+  validate,
+  ValidationErrorCode,
+  ValidationException,
+} from '@app/common';
 
 /**
  * Password value object
@@ -40,65 +42,53 @@ export class Password {
   }
 
   /**
-   * Attempts to create a Password value object, returning an ErrorValidationResult if invalid
+   * Attempts to create a Password value object, returning a ValidationException if invalid
    * @param password - Password string to validate and wrap
    * @returns Object with password and error, where error is undefined if valid
    */
   static tryCreate(password: string): {
     password?: Password;
-    error?: ErrorValidationResult;
+    error?: ValidationException;
   } {
     if (!password || password.length === 0) {
       return {
-        error: {
-          code: ValidationErrorCode.FIELD_IS_REQUIRED,
-          data: {
-            field: 'password',
-          },
-        },
+        error: new ValidationException(ValidationErrorCode.FIELD_IS_REQUIRED, {
+          field: 'password',
+        }),
       };
     }
 
     if (password.length < Password.MIN_LENGTH) {
       return {
-        error: {
-          code: ValidationErrorCode.FIELD_IS_TOO_SHORT,
-          data: {
-            field: 'password',
-            minLength: Password.MIN_LENGTH,
-          },
-        },
+        error: new ValidationException(ValidationErrorCode.FIELD_IS_TOO_SHORT, {
+          field: 'password',
+          minLength: Password.MIN_LENGTH,
+        }),
       };
     }
 
     if (password.length > Password.MAX_LENGTH) {
       return {
-        error: {
-          code: ValidationErrorCode.FIELD_IS_TOO_LONG,
-          data: {
-            field: 'password',
-            maxLength: Password.MAX_LENGTH,
-          },
-        },
+        error: new ValidationException(ValidationErrorCode.FIELD_IS_TOO_LONG, {
+          field: 'password',
+          maxLength: Password.MAX_LENGTH,
+        }),
       };
     }
 
     if (!Password.PASSWORD_REGEXP.test(password)) {
       return {
-        error: {
-          code: ValidationErrorCode.FIELD_IS_INVALID,
-          data: {
-            field: 'password',
-            requirements: {
-              requiresUppercase: true,
-              requiresLowercase: true,
-              requiresDigit: true,
-              requiresSpecialChar: true,
-              specialCharacters: '!@#$%^&*(),.?":{}|<>',
-            },
-            regex: Password.PASSWORD_REGEXP.toString(),
+        error: new ValidationException(ValidationErrorCode.FIELD_IS_INVALID, {
+          field: 'password',
+          requirements: {
+            requiresUppercase: true,
+            requiresLowercase: true,
+            requiresDigit: true,
+            requiresSpecialChar: true,
+            specialCharacters: '!@#$%^&*(),.?":{}|<>',
           },
-        },
+          regex: Password.PASSWORD_REGEXP.toString(),
+        }),
       };
     }
 

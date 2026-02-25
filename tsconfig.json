@@ -10,7 +10,7 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "target": "es2020",
-    "types": ["node"],
+    "types": ["node", "bun"],
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -47,5 +47,5 @@
       "@app/*": ["src/*"]
     }
   },
-  "exclude": ["node_modules", "dist", "vitest.config.ts", "sequelize"]
+  "exclude": ["node_modules", "dist", "vitest.config.ts", "sequelize", "hono-api"]
 }

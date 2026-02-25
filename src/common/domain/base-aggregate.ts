@@ -1,8 +1,9 @@
 import { ValidationErrorCode } from '@app/common/enums/validation-error-code';
+import { ValidationException } from '@app/common/utils/errors';
 import { validate } from '@app/common/utils/validate';
 
 import { DomainEvent } from './domain-event';
-import { Uuid } from './value-objects/uuid';
+import { Uuid } from './uuid';
 
 export enum BaseAggregateField {
   ID = 'id',
@@ -105,14 +106,14 @@ export abstract class BaseAggregate {
    */
   public prepareUpdate(operatorId: Uuid, expectedVersion?: number): void {
     if (expectedVersion !== undefined) {
-      validate(this._version === expectedVersion, {
-        code: ValidationErrorCode.OUTDATED_VERSION,
-        data: {
+      validate(
+        this._version === expectedVersion,
+        new ValidationException(ValidationErrorCode.OUTDATED_VERSION, {
           id: this._id.getValue(),
           expectedVersion,
           actualVersion: this._version,
-        },
-      });
+        })
+      );
     }
 
     this._lastModifiedBy = operatorId;

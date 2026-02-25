@@ -1,6 +1,8 @@
-import { ValidationErrorCode } from '@app/common/enums/validation-error-code';
-import { type ErrorValidationResult } from '@app/common/interfaces/error';
-import { validate } from '@app/common/utils/validate';
+import {
+  validate,
+  ValidationErrorCode,
+  ValidationException,
+} from '@app/common';
 
 /**
  * Username value object
@@ -26,48 +28,39 @@ export class Username {
   }
 
   /**
-   * Attempts to create a Username value object, returning an ErrorValidationResult if invalid
+   * Attempts to create a Username value object, returning a ValidationException if invalid
    * @param username - Username string to validate and wrap
    * @returns Object with username and error, where error is undefined if valid
    */
   static tryCreate(username: string): {
     username?: Username;
-    error?: ErrorValidationResult;
+    error?: ValidationException;
   } {
     if (username.length < Username.MIN_LENGTH) {
       return {
-        error: {
-          code: ValidationErrorCode.FIELD_IS_TOO_SHORT,
-          data: {
-            field: 'username',
-            minLength: Username.MIN_LENGTH,
-          },
-        },
+        error: new ValidationException(ValidationErrorCode.FIELD_IS_TOO_SHORT, {
+          field: 'username',
+          minLength: Username.MIN_LENGTH,
+        }),
       };
     }
 
     if (username.length > Username.MAX_LENGTH) {
       return {
-        error: {
-          code: ValidationErrorCode.FIELD_IS_TOO_LONG,
-          data: {
-            field: 'username',
-            maxLength: Username.MAX_LENGTH,
-          },
-        },
+        error: new ValidationException(ValidationErrorCode.FIELD_IS_TOO_LONG, {
+          field: 'username',
+          maxLength: Username.MAX_LENGTH,
+        }),
       };
     }
 
     if (!Username.USERNAME_REGEXP.test(username)) {
       return {
-        error: {
-          code: ValidationErrorCode.FIELD_IS_INVALID,
-          data: {
-            field: 'username',
-            regex: Username.USERNAME_REGEXP.toString(),
-            allowedCharacters: 'letters, numbers, and underscores',
-          },
-        },
+        error: new ValidationException(ValidationErrorCode.FIELD_IS_INVALID, {
+          field: 'username',
+          regex: Username.USERNAME_REGEXP.toString(),
+          allowedCharacters: 'letters, numbers, and underscores',
+        }),
       };
     }
 

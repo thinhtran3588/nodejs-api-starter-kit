@@ -288,7 +288,7 @@ export const routeConfiguration: RouteConfiguration = {
 
 - Schema files: `.schema.ts` extension, export a schema string ending with `Schema`
 - Resolver files: `.resolvers.ts` extension, export a resolvers object ending with `Resolvers`
-- GraphQL is always enabled; GraphiQL UI can be toggled via `GRAPHQL_UI_ENABLED=true` environment variable
+- GraphQL is always enabled; GraphiQL UI can be toggled via `GRAPHIQL_ENABLED=true` environment variable
 
 ## Common Commands
 

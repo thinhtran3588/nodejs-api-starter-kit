@@ -1,17 +1,17 @@
-import { TEXT_MAX_LENGTH } from '@app/common/constants';
 import {
   BaseAggregate,
+  TEXT_MAX_LENGTH,
+  validateText,
+  ValidationException,
   type BaseAggregateParams,
-} from '@app/common/domain/base-aggregate';
-import { Uuid } from '@app/common/domain/value-objects/uuid';
-import { ValidationException } from '@app/common/utils/exceptions';
-import { validateText } from '@app/common/utils/validate-text';
+  type Uuid,
+} from '@app/common';
 import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
 import type { SignInType } from '@app/modules/auth/domain/enums/sign-in-type';
 import { UserEventType } from '@app/modules/auth/domain/enums/user-event-type';
 import { UserStatus } from '@app/modules/auth/domain/enums/user-status';
-import { Email } from '@app/modules/auth/domain/value-objects/email';
-import { Username } from '@app/modules/auth/domain/value-objects/username';
+import { type Email } from '@app/modules/auth/domain/value-objects/email';
+import { type Username } from '@app/modules/auth/domain/value-objects/username';
 
 enum UserField {
   EMAIL = 'email',

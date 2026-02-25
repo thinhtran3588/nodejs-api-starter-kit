@@ -1,4 +1,4 @@
-import { Uuid } from './value-objects/uuid';
+import { type Uuid } from './uuid';
 
 /**
  * DomainEvent - Full event with aggregate context

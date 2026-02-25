@@ -1,5 +1,6 @@
 import { ValidationErrorCode } from '@app/common/enums/validation-error-code';
-import { ValidationException } from '@app/common/utils/exceptions';
+
+import { ValidationException } from './errors';
 
 export interface ValidateTextOptions {
   field: string;

@@ -1,4 +1,4 @@
-import type { AppContext } from '@app/common/interfaces/context';
+import type { ApplicationContext as AppContext } from './context';
 
 /**
  * Base pagination query parameters interface (domain layer)

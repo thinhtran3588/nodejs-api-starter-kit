@@ -1,31 +1,49 @@
-import swagger from '@fastify/swagger';
-import swaggerUi from '@fastify/swagger-ui';
-import type { FastifyInstance } from 'fastify';
-import {
-  swaggerConfig,
-  swaggerUiConfig,
-} from '@app/application/config/swagger.config';
-import type { RouteTag } from '@app/common/interfaces/configuration';
+import { swaggerUI } from '@hono/swagger-ui';
+import { type App } from '@app/common';
 
-/**
- * Registers the Swagger middleware with the Fastify instance
- * @param app - The Fastify instance to register the middleware with
- * @param tags - The tags to register with the Swagger middleware
- * @returns void
- */
-export async function registerSwagger(
-  app: FastifyInstance,
-  tags: RouteTag[]
-): Promise<void> {
-  const enableSwagger = process.env['SWAGGER_ENABLED'] === 'true';
-  if (!enableSwagger) {
-    return;
+// eslint-disable-next-line no-restricted-imports
+import pkg from '../../../package.json';
+
+export const registerSwagger = (app: App) => {
+  if (process.env['SWAGGER_ENABLED'] === 'true') {
+    const routePrefix = process.env['SWAGGER_DOCUMENTATION_ROUTE'] ?? '/api';
+    const jsonRoute = `${routePrefix}.json`;
+
+    app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      description: 'Enter JWT access token',
+    });
+
+    app.doc(jsonRoute, {
+      openapi: '3.0.0',
+      info: {
+        version: pkg.version,
+        title: pkg.name,
+        description: pkg.description,
+        contact: {
+          name: process.env['SWAGGER_CONTACT_NAME'] ?? '',
+          email: process.env['SWAGGER_CONTACT_EMAIL'] ?? '',
+          url: process.env['SWAGGER_CONTACT_URL'] ?? '',
+        },
+      },
+      servers: [
+        {
+          url: '/',
+          description: 'API server',
+        },
+        ...(process.env['SWAGGER_PRODUCTION_URL']
+          ? [
+              {
+                url: process.env['SWAGGER_PRODUCTION_URL'],
+                description: 'Production server',
+              },
+            ]
+          : []),
+      ],
+    });
+
+    app.get(routePrefix, swaggerUI({ url: jsonRoute }));
   }
-  await app.register(swagger, {
-    openapi: {
-      ...swaggerConfig().openapi,
-      tags,
-    },
-  });
-  await app.register(swaggerUi, swaggerUiConfig());
-}
+};

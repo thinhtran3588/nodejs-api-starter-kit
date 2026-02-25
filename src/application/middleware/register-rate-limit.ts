@@ -1,36 +1,20 @@
-import rateLimit from '@fastify/rate-limit';
-import type { FastifyInstance } from 'fastify';
-import { webConfig } from '@app/application/config/web.config';
+import type { MiddlewareHandler } from 'hono';
+import { rateLimiter } from 'hono-rate-limiter';
+import type { App, Context } from '@app/common';
 
-/**
- * Registers the rate limiting plugin with the Fastify instance
- * @param app - The Fastify instance to register the middleware with
- * @returns void
- */
-export async function registerRateLimit(app: FastifyInstance): Promise<void> {
-  const {
-    rateLimit: { max, timeWindow },
-  } = webConfig();
+let limiter: MiddlewareHandler | undefined;
 
-  await app.register(rateLimit, {
-    max,
-    timeWindow,
-    // Use IP address as the key for rate limiting
-    keyGenerator: (request) => {
-      // Try to get IP from various headers (for proxies/load balancers)
-      return (
-        (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ??
-        (request.headers['x-real-ip'] as string) ??
-        request.ip ??
-        request.socket.remoteAddress ??
-        'unknown'
-      );
-    },
-    // Add rate limit headers to response
-    addHeaders: {
-      'x-ratelimit-limit': true,
-      'x-ratelimit-remaining': true,
-      'x-ratelimit-reset': true,
-    },
-  });
-}
+export const registerRateLimit = (app: App) => {
+  if (process.env['RATE_LIMIT_ENABLED'] === 'true') {
+    app.use('*', async (c: Context, next) => {
+      limiter ??= rateLimiter({
+        windowMs: Number(process.env['RATE_LIMIT_WINDOW_MS']) || 1 * 60 * 1000,
+        limit: Number(process.env['RATE_LIMIT_MAX']) || 100,
+        standardHeaders: 'draft-6',
+        keyGenerator: (c: Context) => c.var.ip,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+      return limiter(c as any, next);
+    });
+  }
+};
