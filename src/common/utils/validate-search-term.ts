@@ -1,5 +1,6 @@
 import { SEARCH_TERM_MAX_LENGTH } from '@app/common/constants';
-import { validateText } from '@app/common/utils/validate-text';
+
+import { validateText } from './validate-text';
 
 /**
  * Validates that a search term does not exceed the maximum allowed length

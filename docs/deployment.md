@@ -88,7 +88,7 @@ The application uses two separate database connections for read and write operat
 **Swagger Configuration:**
 
 - `SWAGGER_ENABLED`: Enable Swagger UI (true/false, default: false)
-- `SWAGGER_DOCUMENTATION_ROUTE_PREFIX`: Swagger UI route prefix (default: `/docs`)
+- `SWAGGER_DOCUMENTATION_ROUTE`: Swagger UI route prefix (default: `/api`)
 - `SWAGGER_CONTACT_NAME`: Contact name for API documentation
 - `SWAGGER_CONTACT_EMAIL`: Contact email for API documentation
 - `SWAGGER_CONTACT_URL`: Contact URL for API documentation
@@ -97,10 +97,9 @@ The application uses two separate database connections for read and write operat
 **GraphQL Configuration:**
 
 - `GRAPHQL_ENDPOINT`: GraphQL endpoint path (default: `/graphql`)
-- `GRAPHQL_UI_ENABLED`: Enable GraphiQL UI (set to `'true'` to enable the GraphQL UI, similar to Swagger UI) (default: `'false'`)
-- `GRAPHQL_UI_ROUTE_PREFIX`: GraphiQL UI route prefix (default: `/graphiql`)
+- `GRAPHIQL_ENABLED`: Enable GraphiQL UI (set to `'true'` to enable the GraphQL UI, similar to Swagger UI) (default: `'false'`)
 
-**Note**: GraphQL is always enabled. The GraphQL endpoint is always available, but the GraphiQL UI can be enabled/disabled via `GRAPHQL_UI_ENABLED`. Schemas and resolvers are automatically discovered and registered.
+**Note**: GraphQL is always enabled. The GraphQL endpoint is always available, but the GraphiQL UI can be enabled/disabled via `GRAPHIQL_ENABLED`. Schemas and resolvers are automatically discovered and registered.
 
 **Module Configuration:**
 

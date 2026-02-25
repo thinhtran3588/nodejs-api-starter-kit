@@ -1,23 +1,17 @@
-import cors from '@fastify/cors';
-import type { FastifyInstance } from 'fastify';
-import { webConfig } from '@app/application/config/web.config';
+import { cors } from 'hono/cors';
+import type { App } from '@app/common';
 
-/**
- * Registers the CORS middleware with the Fastify instance
- * @param app - The Fastify instance to register the middleware with
- * @returns void
- */
-export async function registerCors(app: FastifyInstance): Promise<void> {
-  const {
-    cors: { enabled, origins },
-  } = webConfig();
-
-  if (!enabled) {
-    return;
+export const registerCors = (app: App) => {
+  if (process.env['CORS_ENABLED'] === 'true') {
+    app.use(
+      '*',
+      cors({
+        origin: process.env['CORS_ORIGINS']
+          ? process.env['CORS_ORIGINS'].split(',')
+          : '*',
+        allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowHeaders: ['Content-Type', 'Authorization'],
+      })
+    );
   }
-
-  await app.register(cors, {
-    origin: origins?.length ? origins : true,
-    credentials: true,
-  });
-}
+};

@@ -156,3 +156,4 @@ scripts/sequelize/**/*.d.ts.map
 # PR description
 pr_description.md
 
+hono-api/

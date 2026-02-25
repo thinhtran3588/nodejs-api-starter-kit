@@ -1,30 +1,33 @@
 import {
   asClass,
   asValue,
-  createContainer,
+  createContainer as createAwilixContainer,
   type AwilixContainer,
 } from 'awilix';
-import type { FastifyBaseLogger } from 'fastify';
-import { Sequelize } from 'sequelize';
-import { AuthorizationService } from '@app/common/application/services/authorization.service';
-import type { EventDispatcher as IEventDispatcher } from '@app/common/domain/interfaces/event-dispatcher';
-import type { Logger } from '@app/common/domain/interfaces/logger';
-import { EventDispatcher } from '@app/common/infrastructure/event-dispatcher';
-import { FastifyLogger } from '@app/common/infrastructure/logger';
-import type { DomainEventRepository } from '@app/common/infrastructure/repositories/domain-event.repository';
-import { SequelizeDomainEventRepository } from '@app/common/infrastructure/repositories/domain-event.repository-impl';
-import { JwtService } from '@app/common/infrastructure/services/jwt.service';
+import { type Sequelize } from 'sequelize';
+import {
+  AuthorizationService,
+  EventDispatcherImpl,
+  JwtService,
+  SequelizeDomainEventRepository,
+  type App,
+  type DomainEventRepository,
+  type EventDispatcher,
+  type Logger,
+  type ModuleConfiguration,
+} from '@app/common';
+import type { AuthContainer } from '@app/modules/auth/interfaces/auth-container';
 
 /**
  * Application-level services (shared across all modules)
  */
-export interface ApplicationServices {
+export interface BaseContainer {
   authorizationService: AuthorizationService;
   jwtService: JwtService;
   writeDatabase: Sequelize;
   readDatabase: Sequelize;
   logger: Logger;
-  eventDispatcher: IEventDispatcher;
+  eventDispatcher: EventDispatcher;
   domainEventRepository: DomainEventRepository;
 }
 
@@ -32,28 +35,25 @@ export interface ApplicationServices {
  * Application container type
  * Composed from all module containers + application-level services
  */
-export type Container = ApplicationServices;
-// Future modules will extend this type automatically
-// e.g., type Container = AuthContainer & AssetTrackerContainer & OtherModuleContainer & ApplicationServices;
+export type Container = BaseContainer & AuthContainer;
 
 /**
  * Creates and configures the dependency injection container
- * @param writeDatabase - The Sequelize write database instance
- * @param readDatabase - The Sequelize read database instance
- * @param logger - The Fastify logger instance
+ * @param options - Initialization options
  * @returns The dependency injection container
  */
-export function createDIContainer(
-  writeDatabase: Sequelize,
-  readDatabase: Sequelize,
-  logger: FastifyBaseLogger
-): AwilixContainer<Container> {
-  const container = createContainer<Container>({
-    injectionMode: 'CLASSIC', // Use constructor injection
+export function createContainer({
+  logger,
+  writeDatabase,
+  readDatabase,
+}: {
+  logger: Logger;
+  writeDatabase: Sequelize;
+  readDatabase: Sequelize;
+}): AwilixContainer<Container> {
+  const container = createAwilixContainer<Container>({
+    injectionMode: 'PROXY', // Use proxy injection (cradle)
   });
-
-  // Create logger implementation
-  const loggerInstance = new FastifyLogger(logger);
 
   // Register application-level services (shared across all modules)
   container.register({
@@ -61,10 +61,23 @@ export function createDIContainer(
     jwtService: asClass(JwtService).singleton(),
     writeDatabase: asValue<Sequelize>(writeDatabase),
     readDatabase: asValue<Sequelize>(readDatabase),
-    logger: asValue<Logger>(loggerInstance),
-    eventDispatcher: asClass(EventDispatcher).singleton(),
+    logger: asValue<Logger>(logger),
+    eventDispatcher: asClass(EventDispatcherImpl).singleton(),
     domainEventRepository: asClass(SequelizeDomainEventRepository).singleton(),
   });
 
   return container;
+}
+
+export function registerModules(
+  app: App<Container>,
+  modules: ModuleConfiguration[],
+  container: AwilixContainer<Container>
+): void {
+  modules.forEach((module) => {
+    module.registerDependencies(container);
+    module.adapters.forEach((adapter) => {
+      adapter.registerRoutes(app);
+    });
+  });
 }

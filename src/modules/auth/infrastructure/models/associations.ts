@@ -1,9 +1,9 @@
-import type { ModelAssociationConfiguration } from '@app/common/interfaces/configuration';
-import { RoleModel } from '@app/modules/auth/infrastructure/models/role.model';
-import { UserGroupRoleModel } from '@app/modules/auth/infrastructure/models/user-group-role.model';
-import { UserGroupUserModel } from '@app/modules/auth/infrastructure/models/user-group-user.model';
-import { UserGroupModel } from '@app/modules/auth/infrastructure/models/user-group.model';
-import { UserModel } from '@app/modules/auth/infrastructure/models/user.model';
+import type { ModelAssociationConfiguration } from '@app/common';
+import { RoleModel } from '@app/modules/auth/infrastructure/models/role-model';
+import { UserGroupModel } from '@app/modules/auth/infrastructure/models/user-group-model';
+import { UserGroupRoleModel } from '@app/modules/auth/infrastructure/models/user-group-role-model';
+import { UserGroupUserModel } from '@app/modules/auth/infrastructure/models/user-group-user-model';
+import { UserModel } from '@app/modules/auth/infrastructure/models/user-model';
 
 export const associationConfiguration: ModelAssociationConfiguration = {
   register: () => {

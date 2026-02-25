@@ -1,7 +1,7 @@
 import type { DomainEvent } from '@app/common/domain/domain-event';
-import type { EventDispatcher as IEventDispatcher } from '@app/common/domain/interfaces/event-dispatcher';
-import type { EventHandler } from '@app/common/domain/interfaces/event-handler';
-import type { Logger } from '@app/common/domain/interfaces/logger';
+import type { EventDispatcher } from '@app/common/interfaces/event-dispatcher';
+import type { EventHandler } from '@app/common/interfaces/event-handler';
+import type { Logger } from '@app/common/interfaces/logger';
 
 /**
  * EventDispatcher implementation
@@ -10,10 +10,13 @@ import type { Logger } from '@app/common/domain/interfaces/logger';
  * Handlers are executed asynchronously and errors are logged but don't affect other handlers.
  * The dispatch method returns immediately without waiting for handlers to complete.
  */
-export class EventDispatcher implements IEventDispatcher {
+export class EventDispatcherImpl implements EventDispatcher {
   private readonly handlers = new Map<string, EventHandler[]>();
+  private readonly logger: Logger;
 
-  constructor(private readonly logger: Logger) {}
+  constructor({ logger }: { logger: Logger }) {
+    this.logger = logger;
+  }
 
   registerHandler(handler: EventHandler): void {
     // Validate handler configuration
@@ -43,7 +46,7 @@ export class EventDispatcher implements IEventDispatcher {
 
         for (const handler of handlersForType) {
           // Don't await - fire and forget
-          handler.handle(event).catch((error) => {
+          handler.handle(event).catch((error: unknown) => {
             this.logger.error(
               {
                 eventType: event.eventType,

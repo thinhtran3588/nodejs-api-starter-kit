@@ -6,7 +6,7 @@ import {
   error500ResponseSchema,
   success201ResponseSchema,
   success204ResponseSchema,
-} from '@app/common/schemas/error-response.schemas';
+} from '@app/common/schemas/error-response-schemas';
 
 type StatusCode = 201 | 204 | 400 | 401 | 403 | 404 | 500;
 

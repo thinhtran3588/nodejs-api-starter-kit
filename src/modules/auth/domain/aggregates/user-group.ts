@@ -1,13 +1,11 @@
 import {
+  BaseAggregate,
   TEXT_DESCRIPTION_MAX_LENGTH,
   TEXT_MAX_LENGTH,
-} from '@app/common/constants';
-import {
-  BaseAggregate,
+  validateText,
   type BaseAggregateParams,
-} from '@app/common/domain/base-aggregate';
-import { Uuid } from '@app/common/domain/value-objects/uuid';
-import { validateText } from '@app/common/utils/validate-text';
+  type Uuid,
+} from '@app/common';
 import { UserGroupEventType } from '@app/modules/auth/domain/enums/user-group-event-type';
 
 enum UserGroupField {

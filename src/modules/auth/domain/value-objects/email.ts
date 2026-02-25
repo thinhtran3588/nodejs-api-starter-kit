@@ -1,6 +1,8 @@
-import { ValidationErrorCode } from '@app/common/enums/validation-error-code';
-import { type ErrorValidationResult } from '@app/common/interfaces/error';
-import { validate } from '@app/common/utils/validate';
+import {
+  validate,
+  ValidationErrorCode,
+  ValidationException,
+} from '@app/common';
 
 /**
  * Email value object
@@ -24,23 +26,20 @@ export class Email {
   }
 
   /**
-   * Attempts to create an Email value object, returning an ErrorValidationResult if invalid
+   * Attempts to create an Email value object, returning a ValidationException if invalid
    * @param email - Email string to validate and wrap
    * @returns Object with email and error, where error is undefined if valid
    */
   static tryCreate(email: string): {
     email?: Email;
-    error?: ErrorValidationResult;
+    error?: ValidationException;
   } {
     const trimmed = email.trim();
     if (!trimmed || trimmed.length === 0) {
       return {
-        error: {
-          code: ValidationErrorCode.FIELD_IS_REQUIRED,
-          data: {
-            field: 'email',
-          },
-        },
+        error: new ValidationException(ValidationErrorCode.FIELD_IS_REQUIRED, {
+          field: 'email',
+        }),
       };
     }
 
@@ -48,12 +47,9 @@ export class Email {
 
     if (!Email.EMAIL_REGEXP.test(lowercased)) {
       return {
-        error: {
-          code: ValidationErrorCode.FIELD_IS_INVALID,
-          data: {
-            field: 'email',
-          },
-        },
+        error: new ValidationException(ValidationErrorCode.FIELD_IS_INVALID, {
+          field: 'email',
+        }),
       };
     }
 

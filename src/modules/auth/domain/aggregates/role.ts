@@ -1,11 +1,9 @@
 import {
+  BaseAggregate,
   TEXT_DESCRIPTION_MAX_LENGTH,
   TEXT_MAX_LENGTH,
-} from '@app/common/constants';
-import {
-  BaseAggregate,
   type BaseAggregateParams,
-} from '@app/common/domain/base-aggregate';
+} from '@app/common';
 
 export interface RoleParams extends BaseAggregateParams {
   code: string;

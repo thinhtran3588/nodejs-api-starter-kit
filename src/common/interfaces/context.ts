@@ -1,4 +1,4 @@
-import { Uuid } from '@app/common/domain/value-objects/uuid';
+import type { Uuid } from '@app/common/domain/uuid';
 
 /**
  * App user context passed from interface layer to application layer
@@ -17,6 +17,6 @@ export interface AppUser {
  *
  * Contains all context information needed for use cases
  */
-export interface AppContext {
+export interface ApplicationContext {
   user?: AppUser;
 }

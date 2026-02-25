@@ -1,14 +1,13 @@
-import { type ErrorValidationResult } from '@app/common/interfaces/error';
-import { ValidationException } from '@app/common/utils/exceptions';
+import { ValidationException } from './errors';
 
 export const validate = (
   expression:
     | boolean
     | {
-        error?: ErrorValidationResult;
+        error?: ValidationException;
         [key: string]: unknown;
       },
-  error?: string | ErrorValidationResult
+  error?: string | ValidationException
 ): void => {
   // Handle boolean expression
   if (typeof expression === 'boolean') {
@@ -16,8 +15,7 @@ export const validate = (
       if (typeof error === 'string') {
         throw new ValidationException(error);
       } else {
-        const { code, data, message } = error;
-        throw new ValidationException(code, data, message);
+        throw error;
       }
     }
     return;
@@ -25,7 +23,6 @@ export const validate = (
 
   // Handle object expression with error property (can be result object from tryCreate)
   if (expression.error) {
-    const { code, data, message } = expression.error;
-    throw new ValidationException(code, data, message);
+    throw expression.error;
   }
 };
