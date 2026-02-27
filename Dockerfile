@@ -1,49 +1,42 @@
-# Build stage
-FROM node:24-alpine AS builder
+FROM oven/bun:1-alpine AS deps
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* ./
+# Copy package manifest (and bun lockfile if present)
+COPY package.json bun.lockb* ./
 
-# Install all dependencies (including dev dependencies for build)
-RUN npm ci && npm cache clean --force
+# Install all dependencies (dev + prod) for build caching
+RUN bun install
 
-# Copy source files
+FROM oven/bun:1-alpine AS builder
+
+WORKDIR /app
+
+# Reuse installed dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy the rest of the source code
 COPY . .
 
-# Build TypeScript
-RUN npm run build
+# Build the application (outputs to ./dist)
+RUN bun run build
 
-# Production stage
-FROM node:24-alpine
+FROM oven/bun:1-alpine
 
-# Create a non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* ./
+# Copy package manifest (and bun lockfile if present)
+COPY package.json bun.lockb* ./
 
 # Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN bun install --production --no-save
 
-# Copy compiled JavaScript from builder stage
+# Copy compiled application from builder image
 COPY --from=builder /app/dist ./dist
-
-# Change ownership to non-root user
-RUN chown -R nodejs:nodejs /app
-
-# Switch to non-root user
-USER nodejs
 
 # Expose the port the app runs on
 EXPOSE 8080
 
-# Run the application
-CMD ["npm", "start"]
+# Run the compiled executable
+CMD ["./dist/index"]
 
