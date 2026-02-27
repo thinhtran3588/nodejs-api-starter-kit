@@ -103,12 +103,22 @@ export function buildFullTextSearch(
   // unaccent_immutable() is applied to the search term to match the unaccented search_vector
   // to_tsquery is used with prefix operators (:*), so searching "use" will match "user"
   // Example: searching "tam" will match "tâm", "tấm", "tẩm", etc.
-  const searchCondition = sql`
+  const fullTextSearchCondition = sql`
     ${sql.raw(safeVectorColumn)} @@ to_tsquery(
       ${sql.raw(dictionaryLiteral)},
       unaccent_immutable(${tsQuery})
     )
   `;
+
+  // For single-term queries, include a substring fallback so terms like "xyz"
+  // can match concatenated tokens such as "abcxyz".
+  const searchCondition =
+    terms.length === 1
+      ? sql`(
+          ${fullTextSearchCondition}
+          OR ${sql.raw(safeVectorColumn)}::text ILIKE ${`%${terms[0]}%`}
+        )`
+      : fullTextSearchCondition;
 
   // Order by relevance (ts_rank) when searching
   // Higher rank = better match

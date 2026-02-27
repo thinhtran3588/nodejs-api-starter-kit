@@ -1,5 +1,14 @@
+import type { SQL } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { buildFullTextSearch } from '@app/common';
+
+function toSql(sqlLiteral: SQL | undefined): string {
+  if (!sqlLiteral) {
+    throw new Error('Expected SQL literal to be defined');
+  }
+
+  return JSON.stringify(sqlLiteral.queryChunks);
+}
 
 describe('buildFullTextSearch', () => {
   it('returns undefined literals for empty search term', () => {
@@ -31,6 +40,22 @@ describe('buildFullTextSearch', () => {
 
     expect(result.searchCondition).toBeDefined();
     expect(result.rankLiteral).toBeDefined();
+  });
+
+  it('adds substring fallback for single-term input', () => {
+    const result = buildFullTextSearch('xyz');
+    const searchSql = toSql(result.searchCondition);
+
+    expect(searchSql).toContain('to_tsquery');
+    expect(searchSql).toContain('ILIKE');
+  });
+
+  it('does not add substring fallback for multi-word input', () => {
+    const result = buildFullTextSearch('abc xyz');
+    const searchSql = toSql(result.searchCondition);
+
+    expect(searchSql).toContain('to_tsquery');
+    expect(searchSql).not.toContain('ILIKE');
   });
 
   it('returns undefined for input that becomes empty after sanitization', () => {
