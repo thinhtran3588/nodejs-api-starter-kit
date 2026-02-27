@@ -17,8 +17,8 @@ import { validate } from './validate';
  */
 export function validatePaginationQuery(
   params: PaginationQueryParams,
-  validFields: string[],
-  validSortFields?: string[]
+  validFields: readonly string[],
+  validSortFields?: readonly string[]
 ): PaginationQueryParams {
   const pageIndex = params.pageIndex ?? 0;
   const itemsPerPage = params.itemsPerPage ?? PAGINATION_DEFAULT_ITEMS_PER_PAGE;

@@ -1,6 +1,5 @@
-import type { Transaction } from 'sequelize';
-import type { BaseRepository, Uuid } from '@app/common';
-import type { UserGroup } from '@app/modules/auth/domain/aggregates/user-group';
+import type { BaseRepository, DatabaseTransaction, Uuid } from '@app/common';
+import type { UserGroup } from '@app/modules/auth/domain';
 
 /**
  * Repository interface for user group domain operations
@@ -43,7 +42,7 @@ export interface UserGroupRepository extends BaseRepository<UserGroup> {
   addRole(
     userGroupId: Uuid,
     roleId: Uuid,
-    transaction?: Transaction
+    transaction?: DatabaseTransaction
   ): Promise<void>;
 
   /**
@@ -56,7 +55,7 @@ export interface UserGroupRepository extends BaseRepository<UserGroup> {
   removeRole(
     userGroupId: Uuid,
     roleId: Uuid,
-    transaction?: Transaction
+    transaction?: DatabaseTransaction
   ): Promise<void>;
 
   /**

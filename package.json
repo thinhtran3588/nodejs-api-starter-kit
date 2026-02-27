@@ -20,10 +20,10 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
     "validate": "bun --bun tsc --noEmit && npm run lint && npm run format:check",
-    "migrate": "bun sequelize/migrate.ts up",
-    "migrate:down": "bun sequelize/migrate.ts down",
-    "migrate:status": "bun sequelize/migrate.ts status",
-    "migrate:create": "bun sequelize/create-migration.ts"
+    "migrate": "bun database/migrate.ts up",
+    "migrate:down": "bun database/migrate.ts down",
+    "migrate:status": "bun database/migrate.ts status",
+    "migrate:create": "bun database/create-migration.ts"
   },
   "keywords": [],
   "author": "Thinh Tran",
@@ -33,6 +33,7 @@
     "@hono/swagger-ui": "^0.5.3",
     "@hono/zod-openapi": "^1.2.2",
     "awilix": "^12.0.5",
+    "drizzle-orm": "^0.45.1",
     "firebase-admin": "^13.6.0",
     "graphql": "^16.12.0",
     "hono": "^4.12.2",
@@ -43,7 +44,6 @@
     "pg": "^8.16.3",
     "pino": "^10.3.1",
     "sanitize-html": "^2.17.0",
-    "sequelize": "^6.37.7",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"
   },

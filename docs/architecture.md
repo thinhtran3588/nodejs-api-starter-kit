@@ -258,16 +258,16 @@ Orchestrates domain objects to fulfill business operations using CQRS pattern.
   - Subscribe to one or more event types using `eventTypes` array
   - Execute side effects (emails, analytics, etc.)
 - **Command Interfaces**: Command definitions (input for command handlers)
-  - Located in `application/interfaces/commands/`
+  - Located in `interfaces/commands/`
   - Extend `Command` interface
 - **Query Interfaces**: Query definitions (input for query handlers)
-  - Located in `application/interfaces/queries/`
+  - Located in `interfaces/queries/`
   - Extend `Query` interface
 - **Read Repository Interfaces**: Contracts for optimized read operations
-  - Located in `application/interfaces/repositories/`
+  - Located in `interfaces/repositories/`
   - Return read models, not domain aggregates
 - **Read Models**: Query-optimized data structures for query results
-  - Located in `application/interfaces/queries/` (e.g., `UserReadModel`)
+  - Located in `interfaces/queries/` (e.g., `UserReadModel`)
 
 **Key Principles:**
 

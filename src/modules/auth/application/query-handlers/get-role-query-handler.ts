@@ -5,11 +5,12 @@ import {
   type AuthorizationService,
   type QueryHandler,
 } from '@app/common';
-import type { GetRoleQuery } from '@app/modules/auth/application/interfaces/queries/get-role-query';
-import type { RoleReadModel } from '@app/modules/auth/application/interfaces/queries/role-read-model';
-import type { RoleReadRepository } from '@app/modules/auth/application/interfaces/repositories/role-read-repository';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
+import { AuthExceptionCode, AuthRole } from '@app/modules/auth/domain';
+import type {
+  GetRoleQuery,
+  RoleReadModel,
+  RoleReadRepository,
+} from '@app/modules/auth/interfaces';
 
 export class GetRoleQueryHandler
   implements QueryHandler<GetRoleQuery, RoleReadModel>

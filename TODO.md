@@ -1,2 +1,4 @@
 - caching
 - relative import from other projects
+- text search
+- wrangle

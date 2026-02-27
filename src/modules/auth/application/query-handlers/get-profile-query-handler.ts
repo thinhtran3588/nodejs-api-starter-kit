@@ -4,11 +4,12 @@ import {
   type AuthorizationService,
   type QueryHandler,
 } from '@app/common';
-import type { GetProfileQuery } from '@app/modules/auth/application/interfaces/queries/get-profile-query';
-import type { UserProfileReadModel } from '@app/modules/auth/application/interfaces/queries/user-read-model';
-import type { UserReadRepository } from '@app/modules/auth/application/interfaces/repositories/user-read-repository';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { UserStatus } from '@app/modules/auth/domain/enums/user-status';
+import { AuthExceptionCode, UserStatus } from '@app/modules/auth/domain';
+import type {
+  GetProfileQuery,
+  UserProfileReadModel,
+  UserReadRepository,
+} from '@app/modules/auth/interfaces';
 
 export class GetProfileQueryHandler
   implements QueryHandler<GetProfileQuery, UserProfileReadModel>

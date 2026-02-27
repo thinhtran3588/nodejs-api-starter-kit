@@ -1,18 +1,20 @@
-import type { Transaction } from 'sequelize';
 import {
   Uuid,
   validate,
   type ApplicationContext as AppContext,
   type AuthorizationService,
   type CommandHandler,
+  type DatabaseTransaction,
   type EventDispatcher,
 } from '@app/common';
-import type { RemoveRoleFromUserGroupCommand } from '@app/modules/auth/application/interfaces/commands/remove-role-from-user-group-command';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
-import type { RoleRepository } from '@app/modules/auth/domain/interfaces/repositories/role-repository';
-import type { UserGroupRepository } from '@app/modules/auth/domain/interfaces/repositories/user-group-repository';
-import type { UserGroupValidatorService } from '@app/modules/auth/domain/interfaces/services/user-group-validator-service';
+import {
+  AuthExceptionCode,
+  AuthRole,
+  type RoleRepository,
+  type UserGroupRepository,
+  type UserGroupValidatorService,
+} from '@app/modules/auth/domain';
+import type { RemoveRoleFromUserGroupCommand } from '@app/modules/auth/interfaces';
 
 export class RemoveRoleFromUserGroupCommandHandler
   implements CommandHandler<RemoveRoleFromUserGroupCommand, void>
@@ -70,7 +72,7 @@ export class RemoveRoleFromUserGroupCommandHandler
 
     await this.userGroupRepository.save(
       userGroup,
-      async (transaction: Transaction) => {
+      async (transaction: DatabaseTransaction) => {
         await this.userGroupRepository.removeRole(
           userGroupId,
           roleId,

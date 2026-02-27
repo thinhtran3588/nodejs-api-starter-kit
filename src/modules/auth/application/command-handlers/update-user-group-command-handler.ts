@@ -9,12 +9,14 @@ import {
   type CommandHandler,
   type EventDispatcher,
 } from '@app/common';
-import type { UpdateUserGroupCommand } from '@app/modules/auth/application/interfaces/commands/update-user-group-command';
-import { UserGroup } from '@app/modules/auth/domain/aggregates/user-group';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
-import type { UserGroupRepository } from '@app/modules/auth/domain/interfaces/repositories/user-group-repository';
-import type { UserGroupValidatorService } from '@app/modules/auth/domain/interfaces/services/user-group-validator-service';
+import {
+  AuthExceptionCode,
+  AuthRole,
+  UserGroup,
+  type UserGroupRepository,
+  type UserGroupValidatorService,
+} from '@app/modules/auth/domain';
+import type { UpdateUserGroupCommand } from '@app/modules/auth/interfaces';
 
 export class UpdateUserGroupCommandHandler
   implements CommandHandler<UpdateUserGroupCommand, void>

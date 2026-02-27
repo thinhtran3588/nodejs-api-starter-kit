@@ -9,13 +9,15 @@ import {
   type CommandHandler,
   type EventDispatcher,
 } from '@app/common';
-import type { UpdateUserCommand } from '@app/modules/auth/application/interfaces/commands/update-user-command';
-import { User } from '@app/modules/auth/domain/aggregates/user';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
-import { Username } from '@app/modules/auth/domain/value-objects/username';
+import {
+  AuthExceptionCode,
+  AuthRole,
+  User,
+  Username,
+  type UserRepository,
+  type UserValidatorService,
+} from '@app/modules/auth/domain';
+import type { UpdateUserCommand } from '@app/modules/auth/interfaces';
 
 export class UpdateUserCommandHandler
   implements CommandHandler<UpdateUserCommand, void>

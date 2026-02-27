@@ -5,10 +5,12 @@ import {
   type CommandHandler,
   type EventDispatcher,
 } from '@app/common';
-import type { DeleteUserGroupCommand } from '@app/modules/auth/application/interfaces/commands/delete-user-group-command';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
-import type { UserGroupRepository } from '@app/modules/auth/domain/interfaces/repositories/user-group-repository';
-import type { UserGroupValidatorService } from '@app/modules/auth/domain/interfaces/services/user-group-validator-service';
+import {
+  AuthRole,
+  type UserGroupRepository,
+  type UserGroupValidatorService,
+} from '@app/modules/auth/domain';
+import type { DeleteUserGroupCommand } from '@app/modules/auth/interfaces';
 
 export class DeleteUserGroupCommandHandler
   implements CommandHandler<DeleteUserGroupCommand, void>

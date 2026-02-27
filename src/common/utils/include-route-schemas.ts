@@ -1,23 +1,42 @@
-import {
-  error400ResponseSchema,
-  error401ResponseSchema,
-  error403ResponseSchema,
-  error404ResponseSchema,
-  error500ResponseSchema,
-  success201ResponseSchema,
-  success204ResponseSchema,
-} from '@app/common/schemas/error-response-schemas';
+import { createErrorResponse } from './create-error-response';
 
 type StatusCode = 201 | 204 | 400 | 401 | 403 | 404 | 500;
+type StatusCodeToSchemaMap = typeof statusCodeToSchemaMap;
+type SchemaForCode<Code extends StatusCode> =
+  StatusCodeToSchemaMap[Code] extends Record<Code, infer Schema>
+    ? Schema
+    : never;
+type RouteSchemasFor<Codes extends readonly StatusCode[]> = {
+  [K in Codes[number]]: SchemaForCode<K>;
+};
 
 const statusCodeToSchemaMap = {
-  201: success201ResponseSchema,
-  204: success204ResponseSchema,
-  400: error400ResponseSchema,
-  401: error401ResponseSchema,
-  403: error403ResponseSchema,
-  404: error404ResponseSchema,
-  500: error500ResponseSchema,
+  201: {
+    201: {
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+          },
+        },
+      },
+      description: 'Resource created successfully',
+    },
+  },
+  204: {
+    204: {
+      description: 'Operation completed successfully',
+    },
+  },
+  400: {
+    400: createErrorResponse(
+      'Bad Request - Validation or business logic error'
+    ),
+  },
+  401: { 401: createErrorResponse('Unauthorized - Authentication required') },
+  403: { 403: createErrorResponse('Forbidden - Insufficient permissions') },
+  404: { 404: createErrorResponse('Not Found - Resource does not exist') },
+  500: { 500: createErrorResponse('Internal Server Error') },
 } as const;
 
 /**
@@ -31,11 +50,11 @@ const statusCodeToSchemaMap = {
  *   ...includeRouteSchemas([400, 401, 403, 404, 500]),
  * }
  */
-export function includeRouteSchemas(statusCodes: StatusCode[]): {
-  [K in StatusCode]?: unknown;
-} {
-  return Object.assign(
-    {},
-    ...statusCodes.map((code) => statusCodeToSchemaMap[code])
-  ) as { [K in StatusCode]?: unknown };
+export function includeRouteSchemas<const Codes extends readonly StatusCode[]>(
+  statusCodes: Codes
+): RouteSchemasFor<Codes> {
+  return statusCodes.reduce(
+    (schemas, code) => ({ ...schemas, ...statusCodeToSchemaMap[code] }),
+    {} as RouteSchemasFor<Codes>
+  );
 }

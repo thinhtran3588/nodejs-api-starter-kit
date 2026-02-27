@@ -16,7 +16,9 @@
         "cwd": "${workspaceFolder}",
   
         // The environment variables to pass to the program.
-        "env": {},
+        "env": {
+          "PORT": "3001"
+        },
   
         // If the environment variables should not be inherited from the parent process.
         "strictEnv": false,

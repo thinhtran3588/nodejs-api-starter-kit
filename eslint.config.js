@@ -90,27 +90,7 @@ export default tseslint.config(
       '*.js',
       '*.mjs',
       '*.cjs',
-      'vitest.config.ts',
-      'src/__tests__/**',
-      'src/application/database/migrations/**',
-      'src/application/database/seeders/**',
-      'scripts/**',
-      'sequelize/**/*.sql',
-      'sequelize/**/*.ts',
     ],
   },
-  {
-    // Allow console in .mjs script files
-    files: ['**/*.mjs'],
-    languageOptions: {
-      globals: {
-        console: 'readonly',
-      },
-    },
-    rules: {
-      'no-console': 'off',
-    },
-  },
- 
 );
 

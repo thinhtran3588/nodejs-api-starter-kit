@@ -6,14 +6,14 @@ import {
   type PaginatedResult,
   type QueryHandler,
 } from '@app/common';
-import type { FindUserGroupsQuery } from '@app/modules/auth/application/interfaces/queries/find-user-groups-query';
+import { AuthRole } from '@app/modules/auth/domain';
 import {
   USER_GROUP_READ_MODEL_FIELDS,
   USER_GROUP_READ_MODEL_SORT_FIELDS,
+  type FindUserGroupsQuery,
   type UserGroupReadModel,
-} from '@app/modules/auth/application/interfaces/queries/user-group-read-model';
-import type { UserGroupReadRepository } from '@app/modules/auth/application/interfaces/repositories/user-group-read-repository';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
+  type UserGroupReadRepository,
+} from '@app/modules/auth/interfaces';
 
 export class FindUserGroupsQueryHandler
   implements

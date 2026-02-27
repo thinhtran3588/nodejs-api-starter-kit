@@ -1,24 +1,27 @@
 import {
   BusinessException,
   sanitize,
+  ValidationException,
   type ApplicationContext as AppContext,
   type CommandHandler,
   type EventDispatcher,
 } from '@app/common';
+import {
+  AuthExceptionCode,
+  Email,
+  Password,
+  SignInType,
+  User,
+  Username,
+  type ExternalAuthenticationService,
+  type UserIdGeneratorService,
+  type UserRepository,
+  type UserValidatorService,
+} from '@app/modules/auth/domain';
 import type {
   RegisterCommand,
   RegisterResult,
-} from '@app/modules/auth/application/interfaces/commands/register-command';
-import { User } from '@app/modules/auth/domain/aggregates/user';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { SignInType } from '@app/modules/auth/domain/enums/sign-in-type';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { ExternalAuthenticationService } from '@app/modules/auth/domain/interfaces/services/external-authentication-service';
-import type { UserIdGeneratorService } from '@app/modules/auth/domain/interfaces/services/user-id-generator-service';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
-import { Email } from '@app/modules/auth/domain/value-objects/email';
-import { Password } from '@app/modules/auth/domain/value-objects/password';
-import { Username } from '@app/modules/auth/domain/value-objects/username';
+} from '@app/modules/auth/interfaces';
 
 export class RegisterCommandHandler
   implements CommandHandler<RegisterCommand, RegisterResult>
@@ -64,6 +67,14 @@ export class RegisterCommandHandler
 
     if (username) {
       await this.userValidatorService.validateUsernameUniqueness(username);
+    }
+
+    const existingFirebaseUser =
+      await this.externalAuthenticationService.findUserByEmail(
+        email.getValue()
+      );
+    if (existingFirebaseUser) {
+      throw new ValidationException(AuthExceptionCode.EMAIL_ALREADY_TAKEN);
     }
 
     const externalId = await this.externalAuthenticationService.createUser({

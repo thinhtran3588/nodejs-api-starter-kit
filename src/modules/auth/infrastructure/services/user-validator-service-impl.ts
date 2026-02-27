@@ -1,10 +1,12 @@
 import { validate, ValidationException, type Uuid } from '@app/common';
-import { type User } from '@app/modules/auth/domain/aggregates/user';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
-import type { Email } from '@app/modules/auth/domain/value-objects/email';
-import type { Username } from '@app/modules/auth/domain/value-objects/username';
+import {
+  AuthExceptionCode,
+  type Email,
+  type User,
+  type Username,
+  type UserRepository,
+  type UserValidatorService,
+} from '@app/modules/auth/domain';
 
 /**
  * Infrastructure implementation of UserValidatorService

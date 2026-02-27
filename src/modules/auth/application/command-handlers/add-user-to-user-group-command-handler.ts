@@ -1,19 +1,21 @@
-import type { Transaction } from 'sequelize';
 import {
   Uuid,
   validate,
   type ApplicationContext as AppContext,
   type AuthorizationService,
   type CommandHandler,
+  type DatabaseTransaction,
   type EventDispatcher,
 } from '@app/common';
-import type { AddUserToUserGroupCommand } from '@app/modules/auth/application/interfaces/commands/add-user-to-user-group-command';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
-import type { UserGroupRepository } from '@app/modules/auth/domain/interfaces/repositories/user-group-repository';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { UserGroupValidatorService } from '@app/modules/auth/domain/interfaces/services/user-group-validator-service';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
+import {
+  AuthExceptionCode,
+  AuthRole,
+  type UserGroupRepository,
+  type UserGroupValidatorService,
+  type UserRepository,
+  type UserValidatorService,
+} from '@app/modules/auth/domain';
+import type { AddUserToUserGroupCommand } from '@app/modules/auth/interfaces';
 
 export class AddUserToUserGroupCommandHandler
   implements CommandHandler<AddUserToUserGroupCommand, void>
@@ -70,9 +72,12 @@ export class AddUserToUserGroupCommandHandler
     user.prepareUpdate(context.user!.userId);
     user.addedToUserGroup(userGroupId);
 
-    await this.userRepository.save(user, async (transaction: Transaction) => {
-      await this.userRepository.addToGroup(userId, userGroupId, transaction);
-    });
+    await this.userRepository.save(
+      user,
+      async (transaction: DatabaseTransaction) => {
+        await this.userRepository.addToGroup(userId, userGroupId, transaction);
+      }
+    );
     await this.eventDispatcher.dispatch(user.getEvents());
   }
 }

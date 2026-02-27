@@ -1,56 +1,58 @@
-import { Op, type Model, type ModelStatic, type Transaction } from 'sequelize';
+import { and, eq, ne, type InferSelectModel } from 'drizzle-orm';
 import {
   BaseRepositoryImpl,
   extractBaseAggregateParams,
   SystemExceptionCode,
   ValidationException,
+  type DatabaseClient,
+  type DatabaseTransaction,
   type DomainEventRepository,
   type Uuid,
 } from '@app/common';
-import { User } from '@app/modules/auth/domain/aggregates/user';
-import { type SignInType } from '@app/modules/auth/domain/enums/sign-in-type';
-import { UserStatus } from '@app/modules/auth/domain/enums/user-status';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { ExternalAuthenticationService } from '@app/modules/auth/domain/interfaces/services/external-authentication-service';
-import { Email } from '@app/modules/auth/domain/value-objects/email';
-import { Username } from '@app/modules/auth/domain/value-objects/username';
-import { UserGroupUserModel } from '@app/modules/auth/infrastructure/models/user-group-user-model';
-import { UserModel } from '@app/modules/auth/infrastructure/models/user-model';
-import { UserPendingDeletionModel } from '@app/modules/auth/infrastructure/models/user-pending-deletion-model';
+import {
+  Email,
+  User,
+  Username,
+  UserStatus,
+  type ExternalAuthenticationService,
+  type SignInType,
+  type UserRepository,
+} from '@app/modules/auth/domain';
+import { schema } from '@app/modules/auth/infrastructure/schema';
+
+const { userGroupUsers, users, usersPendingDeletion } = schema;
 
 /**
- * Sequelize implementation of UserRepository
- * Uses PostgreSQL database via Sequelize ORM
+ * Drizzle implementation of UserRepository
+ * Uses PostgreSQL database via Drizzle ORM
  */
 export class UserRepositoryImpl
-  extends BaseRepositoryImpl<User>
+  extends BaseRepositoryImpl<User, typeof users>
   implements UserRepository
 {
-  private readonly externalAuthenticationService: ExternalAuthenticationService;
-
   constructor({
+    writeDatabase,
     domainEventRepository,
-    externalAuthenticationService,
   }: {
+    writeDatabase: DatabaseClient;
     domainEventRepository: DomainEventRepository;
     externalAuthenticationService: ExternalAuthenticationService;
   }) {
-    super({ domainEventRepository });
-    this.externalAuthenticationService = externalAuthenticationService;
+    super({ writeDatabase, domainEventRepository });
   }
 
   protected getAggregateName(): string {
     return 'User';
   }
 
-  protected getModel(): ModelStatic<Model> {
-    return UserModel;
+  protected getTable(): typeof users {
+    return users;
   }
 
   /**
-   * Convert Sequelize model to domain User aggregate
+   * Convert database row to domain User aggregate
    */
-  protected toDomain(userModel: UserModel): User {
+  protected toDomain(userModel: InferSelectModel<typeof users>): User {
     const emailResult = Email.tryCreate(userModel.email);
     if (!emailResult.email) {
       throw new ValidationException(
@@ -89,15 +91,14 @@ export class UserRepositoryImpl
 
   override async save(
     user: User,
-    postSaveCallback?: (transaction: Transaction) => Promise<void>
+    postSaveCallback?: (transaction: DatabaseTransaction) => Promise<void>
   ): Promise<void> {
     await super.save(user, async (transaction) => {
       if (user.status === UserStatus.DELETED) {
-        await UserPendingDeletionModel.findOrCreate({
-          where: { id: user.id.getValue() },
-          defaults: { id: user.id.getValue() },
-          transaction,
-        });
+        await transaction
+          .insert(usersPendingDeletion)
+          .values({ id: user.id.getValue() })
+          .onConflictDoNothing();
       }
       if (postSaveCallback) {
         await postSaveCallback(transaction);
@@ -122,11 +123,11 @@ export class UserRepositoryImpl
   // ============================================================================
 
   async findByEmail(email: Email): Promise<User | undefined> {
-    const userModel = await UserModel.findOne({
-      where: {
-        email: email.getValue(),
-      },
-    });
+    const [userModel] = await this.writeDatabase
+      .select()
+      .from(users)
+      .where(eq(users.email, email.getValue()))
+      .limit(1);
     if (!userModel) {
       return undefined;
     }
@@ -134,11 +135,11 @@ export class UserRepositoryImpl
   }
 
   async findByExternalId(externalId: string): Promise<User | undefined> {
-    const userModel = await UserModel.findOne({
-      where: {
-        externalId,
-      },
-    });
+    const [userModel] = await this.writeDatabase
+      .select()
+      .from(users)
+      .where(eq(users.externalId, externalId))
+      .limit(1);
     if (!userModel) {
       return undefined;
     }
@@ -146,11 +147,11 @@ export class UserRepositoryImpl
   }
 
   async findByUsername(username: Username): Promise<User | undefined> {
-    const userModel = await UserModel.findOne({
-      where: {
-        username: username.getValue(),
-      },
-    });
+    const [userModel] = await this.writeDatabase
+      .select()
+      .from(users)
+      .where(eq(users.username, username.getValue()))
+      .limit(1);
     if (!userModel) {
       return undefined;
     }
@@ -158,42 +159,27 @@ export class UserRepositoryImpl
   }
 
   async emailExists(email: Email): Promise<boolean> {
-    const existingUser = await UserModel.findOne({
-      where: {
-        email: email.getValue(),
-      },
-      attributes: ['id'],
-    });
-    if (existingUser) {
-      return true;
-    }
-
-    const existingFirebaseUser =
-      await this.externalAuthenticationService.findUserByEmail(
-        email.getValue()
-      );
-    return existingFirebaseUser !== undefined;
+    const [existingUser] = await this.writeDatabase
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email.getValue()))
+      .limit(1);
+    return Boolean(existingUser);
   }
 
   async usernameExists(
     username: Username,
     excludeUserId?: Uuid
   ): Promise<boolean> {
-    const whereClause: {
-      username: string;
-      id?: { [Op.ne]: string };
-    } = {
-      username: username.getValue(),
-    };
-
-    if (excludeUserId) {
-      whereClause.id = { [Op.ne]: excludeUserId.getValue() };
-    }
-
-    const userModel = await UserModel.findOne({
-      where: whereClause,
-      attributes: ['id'],
-    });
+    const baseCondition = eq(users.username, username.getValue());
+    const whereCondition = excludeUserId
+      ? and(baseCondition, ne(users.id, excludeUserId.getValue()))
+      : baseCondition;
+    const [userModel] = await this.writeDatabase
+      .select({ id: users.id })
+      .from(users)
+      .where(whereCondition)
+      .limit(1);
     return Boolean(userModel);
   }
 
@@ -204,29 +190,29 @@ export class UserRepositoryImpl
   async addToGroup(
     userId: Uuid,
     userGroupId: Uuid,
-    transaction?: Transaction
+    transaction?: DatabaseTransaction
   ): Promise<void> {
-    await UserGroupUserModel.create(
-      {
-        userGroupId: userGroupId.getValue(),
-        userId: userId.getValue(),
-        createdAt: new Date(),
-      },
-      { transaction }
-    );
+    const executor = transaction ?? this.writeDatabase;
+    await executor.insert(userGroupUsers).values({
+      userGroupId: userGroupId.getValue(),
+      userId: userId.getValue(),
+      createdAt: new Date(),
+    });
   }
 
   async removeFromGroup(
     userId: Uuid,
     userGroupId: Uuid,
-    transaction?: Transaction
+    transaction?: DatabaseTransaction
   ): Promise<void> {
-    await UserGroupUserModel.destroy({
-      where: {
-        userGroupId: userGroupId.getValue(),
-        userId: userId.getValue(),
-      },
-      transaction,
-    });
+    const executor = transaction ?? this.writeDatabase;
+    await executor
+      .delete(userGroupUsers)
+      .where(
+        and(
+          eq(userGroupUsers.userGroupId, userGroupId.getValue()),
+          eq(userGroupUsers.userId, userId.getValue())
+        )
+      );
   }
 }

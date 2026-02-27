@@ -1,266 +1,400 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument */
 import { z } from '@hono/zod-openapi';
+import type { GraphQLResolveInfo } from 'graphql';
 import {
   createApiRoute,
+  createBodySchema,
+  createFindQueryResultSchema,
+  createFindQuerySchema,
+  createIdSchema,
+  extractGraphQLFields,
+  includeJsonSchema,
+  includeRouteSchemas,
+  resolveServices,
+  SuccessResponseSchema,
+  toApplicationContext,
   type AdapterConfiguration,
   type App,
   type Context,
 } from '@app/common';
-import type { AuthContainer } from '@app/modules/auth/interfaces';
+import { SignInType, UserStatus } from '@app/modules/auth/domain';
+import {
+  USER_READ_MODEL_FIELDS,
+  USER_READ_MODEL_SORT_FIELDS,
+  type AuthContainer,
+  type DeleteUserCommand,
+  type FindUsersQuery,
+  type GetUserQuery,
+  type ToggleUserStatusCommand,
+  type UpdateUserCommand,
+} from '@app/modules/auth/interfaces';
+
+const TAG = 'users';
+const SIGN_IN_TYPE_VALUES = [
+  SignInType.EMAIL,
+  SignInType.GOOGLE,
+  SignInType.APPLE,
+] as const;
+const USER_STATUS_VALUES = [
+  UserStatus.ACTIVE,
+  UserStatus.DISABLED,
+  UserStatus.DELETED,
+] as const;
 
 const UserSchema = z.object({
-  id: z.string().openapi({ example: '1' }),
-  name: z.string().openapi({ example: 'John Doe' }),
-  email: z.string().email().openapi({ example: 'john@example.com' }),
+  id: z.uuid(),
+  email: z.email().openapi({ example: 'john@example.com' }),
+  signInType: z.enum(SIGN_IN_TYPE_VALUES),
+  externalId: z.string(),
+  username: z.string().optional(),
+  displayName: z.string().optional(),
+  status: z.enum(USER_STATUS_VALUES),
+  version: z.number(),
+  createdAt: z.iso.datetime(),
+  lastModifiedAt: z.iso.datetime().optional(),
+  createdBy: z.string().optional(),
+  lastModifiedBy: z.string().optional(),
 });
+
+interface UserGroupMembershipArgs {
+  id: string;
+  userGroupId: string;
+}
 
 export const userAdapter: AdapterConfiguration<AuthContainer> = {
   registerRoutes(app: App<AuthContainer>): void {
-    // GET /users
     app.openapi(
       createApiRoute({
         method: 'get',
         path: '/users',
-        summary: 'List users',
-        tags: ['users'],
+        summary: 'Find users by search term with pagination',
+        description:
+          'Searches for users by email, username, or display name with pagination support.',
+        security: [{ bearerAuth: [] }],
+        tags: [TAG],
         request: {
-          query: z.object({
-            name: z.string().optional().openapi({ example: 'John' }),
-          }),
+          query: createFindQuerySchema(
+            USER_READ_MODEL_FIELDS,
+            USER_READ_MODEL_SORT_FIELDS,
+            {
+              userGroupId: z.uuid().optional(),
+            }
+          ),
         },
         responses: {
-          200: {
-            content: {
-              'application/json': {
-                schema: z.array(UserSchema),
-              },
-            },
-            description: 'List of users',
-          },
+          ...includeJsonSchema(
+            200,
+            'List of users',
+            createFindQueryResultSchema(UserSchema)
+          ),
+          ...includeRouteSchemas([401, 403, 500]),
         },
       }),
       async (c) => {
-        const { findUsersQueryHandler } = c.var.container.cradle;
-        const name = c.req.query('name');
-        const users = await findUsersQueryHandler.execute(
-          { searchTerm: name } as any,
-          c as any
+        const { findUsersQueryHandler } = resolveServices(c);
+        const query = c.req.valid('query');
+
+        const result = await findUsersQueryHandler.execute(
+          query,
+          toApplicationContext(c)
         );
-        return c.json(users.data as any);
+        return c.json(result, 200);
       }
     );
 
-    // GET /users/:id
     app.openapi(
       createApiRoute({
         method: 'get',
         path: '/users/{id}',
         summary: 'Get user by ID',
-        tags: ['users'],
+        security: [{ bearerAuth: [] }],
+        tags: [TAG],
         request: {
-          params: z.object({
-            id: z.string().openapi({ example: '1' }),
-          }),
+          params: createIdSchema(),
         },
         responses: {
-          200: {
-            content: {
-              'application/json': {
-                schema: UserSchema,
-              },
-            },
-            description: 'User details',
-          },
-          404: {
-            description: 'User not found',
-          },
+          ...includeJsonSchema(200, 'User details', UserSchema),
+          ...includeRouteSchemas([401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { getUserQueryHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
-        const user = await getUserQueryHandler.execute({ id }, c as any);
-        if (!user) {
-          return c.json({ error: 'User not found' }, 404);
-        }
-        return c.json(user as any);
+        const { getUserQueryHandler } = resolveServices(c);
+        const params = c.req.valid('param');
+        const result = await getUserQueryHandler.execute(
+          params,
+          toApplicationContext(c)
+        );
+        return c.json(result, 200);
       }
     );
 
-    // PATCH /users/:id
     app.openapi(
       createApiRoute({
         method: 'patch',
         path: '/users/{id}',
         summary: 'Update user',
-        tags: ['users'],
+        security: [{ bearerAuth: [] }],
+        tags: [TAG],
         request: {
-          params: z.object({
-            id: z.string().openapi({ example: '1' }),
-          }),
-          body: {
-            content: {
-              'application/json': {
-                schema: UserSchema.omit({ id: true }).partial(),
-              },
-            },
-          },
+          params: createIdSchema(),
+          body: createBodySchema(
+            z.object({
+              displayName: z.string().optional(),
+              username: z.string().optional(),
+            })
+          ),
         },
         responses: {
-          200: {
-            content: {
-              'application/json': {
-                schema: UserSchema,
-              },
-            },
-            description: 'User updated',
-          },
-          404: {
-            description: 'User not found',
-          },
+          ...includeJsonSchema(200, 'User updated', SuccessResponseSchema),
+          ...includeRouteSchemas([401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { updateUserCommandHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
+        const { updateUserCommandHandler } = resolveServices(c);
+        const params = c.req.valid('param');
         const data = c.req.valid('json');
         await updateUserCommandHandler.execute(
-          { id, ...data } as any,
-          c as any
+          { ...params, ...data },
+          toApplicationContext(c)
         );
-        return c.json({ id, ...data } as any);
+        return c.json({ success: true }, 200);
       }
     );
 
-    // DELETE /users/:id
     app.openapi(
       createApiRoute({
         method: 'delete',
         path: '/users/{id}',
         summary: 'Delete user',
-        tags: ['users'],
+        security: [{ bearerAuth: [] }],
+        tags: [TAG],
         request: {
-          params: z.object({
-            id: z.string().openapi({ example: '1' }),
-          }),
+          params: createIdSchema(),
         },
         responses: {
-          200: {
-            content: {
-              'application/json': {
-                schema: z.object({ success: z.boolean() }),
-              },
-            },
-            description: 'User deleted',
-          },
-          404: {
-            description: 'User not found',
-          },
+          ...includeJsonSchema(200, 'User deleted', SuccessResponseSchema),
+          ...includeRouteSchemas([401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { deleteUserCommandHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
-        await deleteUserCommandHandler.execute({ id }, c as any);
-        return c.json({ success: true });
+        const { deleteUserCommandHandler } = resolveServices(c);
+        const params = c.req.valid('param');
+        await deleteUserCommandHandler.execute(params, toApplicationContext(c));
+        return c.json({ success: true }, 200);
       }
     );
-    // POST /users/:id/toggle-status
     app.openapi(
       createApiRoute({
         method: 'post',
         path: '/users/{id}/toggle-status',
         summary: 'Toggle user status',
-        tags: ['users'],
+        security: [{ bearerAuth: [] }],
+        tags: [TAG],
         request: {
-          params: z.object({
-            id: z.string().openapi({ example: '1' }),
-          }),
-          body: {
-            content: {
-              'application/json': {
-                schema: z.object({ enabled: z.boolean() }),
-              },
-            },
-          },
+          params: createIdSchema(),
+          body: createBodySchema(z.object({ enabled: z.boolean() })),
         },
         responses: {
-          200: {
-            content: {
-              'application/json': {
-                schema: z.object({ success: z.boolean() }),
-              },
-            },
-            description: 'Status toggled',
-          },
-          404: {
-            description: 'User not found',
-          },
+          ...includeJsonSchema(200, 'Status toggled', SuccessResponseSchema),
+          ...includeRouteSchemas([401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { toggleUserStatusCommandHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
-        const { enabled } = c.req.valid('json');
-        await toggleUserStatusCommandHandler.execute({ id, enabled }, c as any);
-        return c.json({ success: true });
+        const { toggleUserStatusCommandHandler } = resolveServices(c);
+        const params = c.req.valid('param');
+        const data = c.req.valid('json');
+        await toggleUserStatusCommandHandler.execute(
+          { ...params, ...data },
+          toApplicationContext(c)
+        );
+        return c.json({ success: true }, 200);
+      }
+    );
+
+    app.openapi(
+      createApiRoute({
+        method: 'post',
+        path: '/users/{id}/user-groups',
+        summary: 'Add user to group',
+        description: 'Adds the specified user to a user group.',
+        security: [{ bearerAuth: [] }],
+        tags: [TAG],
+        request: {
+          params: createIdSchema(),
+          body: createBodySchema(
+            z.object({
+              userGroupId: z.uuid(),
+            })
+          ),
+        },
+        responses: {
+          ...includeJsonSchema(
+            200,
+            'User added to group',
+            SuccessResponseSchema
+          ),
+          ...includeRouteSchemas([400, 401, 403, 404, 500]),
+        },
+      }),
+      async (c) => {
+        const { addUserToUserGroupCommandHandler } = resolveServices(c);
+        const pathParams = c.req.valid('param');
+        const params = { userId: pathParams.id };
+        const data = c.req.valid('json');
+        await addUserToUserGroupCommandHandler.execute(
+          { ...params, ...data },
+          toApplicationContext(c)
+        );
+        return c.json({ success: true }, 200);
+      }
+    );
+
+    app.openapi(
+      createApiRoute({
+        method: 'delete',
+        path: '/users/{id}/user-groups/{userGroupId}',
+        summary: 'Remove user from group',
+        description: 'Removes the specified user from a user group.',
+        security: [{ bearerAuth: [] }],
+        tags: [TAG],
+        request: {
+          params: z.object({
+            id: z.uuid(),
+            userGroupId: z.uuid(),
+          }),
+        },
+        responses: {
+          ...includeJsonSchema(
+            200,
+            'User removed from group',
+            SuccessResponseSchema
+          ),
+          ...includeRouteSchemas([400, 401, 403, 404, 500]),
+        },
+      }),
+      async (c) => {
+        const { removeUserFromUserGroupCommandHandler } = resolveServices(c);
+        const params = c.req.valid('param');
+        await removeUserFromUserGroupCommandHandler.execute(
+          { userId: params.id, userGroupId: params.userGroupId },
+          toApplicationContext(c)
+        );
+        return c.json({ success: true }, 200);
       }
     );
   },
   graphql: {
     typeDefs: `
       type User {
-        id: String
-        name: String
-        email: String
+        id: String!
+        email: String!
+        username: String
+        displayName: String
+        status: String!
+        version: Int!
+        createdAt: String!
+        lastModifiedAt: String
+        createdBy: String
+        lastModifiedBy: String
+      }
+
+      type UsersResult {
+        data: [User!]!
+        pagination: PaginationInfo!
       }
 
       extend type Query {
-        users(name: String): [User]
+        users(
+          searchTerm: String
+          userGroupId: String
+          pageIndex: Int
+          itemsPerPage: Int
+          sortField: String
+          sortOrder: String
+        ): UsersResult
         user(id: String!): User
       }
 
       extend type Mutation {
-        updateUser(id: String!, name: String, email: String): User
+        updateUser(id: String!, displayName: String, username: String): Boolean
         deleteUser(id: String!): Boolean
         toggleUserStatus(id: String!, enabled: Boolean!): Boolean
+        addUserToUserGroup(id: String!, userGroupId: String!): Boolean
+        removeUserFromUserGroup(id: String!, userGroupId: String!): Boolean
       }
     `,
     resolvers: {
-      users: async ({ name }: { name?: string }, c: Context<AuthContainer>) => {
-        const { findUsersQueryHandler } = c.var.container.cradle;
-        const res = await findUsersQueryHandler.execute(
-          { searchTerm: name } as any,
-          c as any
+      users: async (
+        query: FindUsersQuery,
+        c: Context<AuthContainer>,
+        info: GraphQLResolveInfo
+      ) => {
+        const { findUsersQueryHandler } = resolveServices(c);
+        return findUsersQueryHandler.execute(
+          {
+            ...query,
+            fields: extractGraphQLFields(info, 'data'),
+          },
+          toApplicationContext(c)
         );
-        return res.data;
       },
-      user: async ({ id }: { id: string }, c: Context<AuthContainer>) => {
-        const { getUserQueryHandler } = c.var.container.cradle;
-        return getUserQueryHandler.execute({ id }, c as any);
+      user: async (query: GetUserQuery, c: Context<AuthContainer>) => {
+        const { getUserQueryHandler } = resolveServices(c);
+        return getUserQueryHandler.execute(query, toApplicationContext(c));
       },
       updateUser: async (
-        { id, ...data }: { id: string; name?: string; email?: string },
+        command: UpdateUserCommand,
         c: Context<AuthContainer>
       ) => {
-        const { updateUserCommandHandler } = c.var.container.cradle;
+        const { updateUserCommandHandler } = resolveServices(c);
         await updateUserCommandHandler.execute(
-          { id, ...data } as any,
-          c as any
+          command,
+          toApplicationContext(c)
         );
-        return { id, ...data };
+        return true;
       },
-      deleteUser: async ({ id }: { id: string }, c: Context<AuthContainer>) => {
-        const { deleteUserCommandHandler } = c.var.container.cradle;
-        await deleteUserCommandHandler.execute({ id }, c as any);
+      deleteUser: async (
+        command: DeleteUserCommand,
+        c: Context<AuthContainer>
+      ) => {
+        const { deleteUserCommandHandler } = resolveServices(c);
+        await deleteUserCommandHandler.execute(
+          command,
+          toApplicationContext(c)
+        );
         return true;
       },
       toggleUserStatus: async (
-        { id, enabled }: { id: string; enabled: boolean },
+        command: ToggleUserStatusCommand,
         c: Context<AuthContainer>
       ) => {
-        const { toggleUserStatusCommandHandler } = c.var.container.cradle;
-        await toggleUserStatusCommandHandler.execute({ id, enabled }, c as any);
+        const { toggleUserStatusCommandHandler } = resolveServices(c);
+        await toggleUserStatusCommandHandler.execute(
+          command,
+          toApplicationContext(c)
+        );
+        return true;
+      },
+      addUserToUserGroup: async (
+        args: UserGroupMembershipArgs,
+        c: Context<AuthContainer>
+      ) => {
+        const { addUserToUserGroupCommandHandler } = resolveServices(c);
+        await addUserToUserGroupCommandHandler.execute(
+          { userId: args.id, userGroupId: args.userGroupId },
+          toApplicationContext(c)
+        );
+        return true;
+      },
+      removeUserFromUserGroup: async (
+        args: UserGroupMembershipArgs,
+        c: Context<AuthContainer>
+      ) => {
+        const { removeUserFromUserGroupCommandHandler } = resolveServices(c);
+        const params = { userId: args.id, userGroupId: args.userGroupId };
+        await removeUserFromUserGroupCommandHandler.execute(
+          params,
+          toApplicationContext(c)
+        );
         return true;
       },
     },

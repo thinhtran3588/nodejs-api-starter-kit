@@ -1,5 +1,5 @@
 import type { Uuid } from '@app/common';
-import type { Email } from '@app/modules/auth/domain/value-objects/email';
+import type { Email } from '@app/modules/auth/domain';
 
 /**
  * Service interface for generating user IDs

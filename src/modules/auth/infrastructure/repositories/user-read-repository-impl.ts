@@ -1,28 +1,43 @@
-import { literal, Op, type Sequelize } from 'sequelize';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import {
   buildFullTextSearch,
   PAGINATION_DEFAULT_ITEMS_PER_PAGE,
   pickFields,
+  type DatabaseClient,
   type PaginatedResult,
 } from '@app/common';
-import type { FindUsersQueryParams } from '@app/modules/auth/application/interfaces/queries/user-query-params';
-import type { UserReadModel } from '@app/modules/auth/application/interfaces/queries/user-read-model';
-import type { UserReadRepository } from '@app/modules/auth/application/interfaces/repositories/user-read-repository';
-import { type UserModel } from '@app/modules/auth/infrastructure/models/user-model';
+import { schema } from '@app/modules/auth/infrastructure/schema';
+import type {
+  FindUsersQueryParams,
+  UserReadModel,
+  UserReadRepository,
+} from '@app/modules/auth/interfaces';
+
+const { users } = schema;
+const userSelectColumns = {
+  id: users.id,
+  email: users.email,
+  signInType: users.signInType,
+  externalId: users.externalId,
+  username: users.username,
+  displayName: users.displayName,
+  status: users.status,
+  version: users.version,
+  createdAt: users.createdAt,
+  lastModifiedAt: users.lastModifiedAt,
+  createdBy: users.createdBy,
+  lastModifiedBy: users.lastModifiedBy,
+} as const;
 
 /**
- * Sequelize implementation of UserReadRepository
- * Uses PostgreSQL read database via Sequelize ORM
+ * Drizzle implementation of UserReadRepository
+ * Uses PostgreSQL read database via Drizzle ORM
  */
 export class UserReadRepositoryImpl implements UserReadRepository {
-  private readonly readDatabase: Sequelize;
+  private readonly readDatabase: DatabaseClient;
 
-  constructor({ readDatabase }: { readDatabase: Sequelize }) {
+  constructor({ readDatabase }: { readDatabase: DatabaseClient }) {
     this.readDatabase = readDatabase;
-  }
-
-  private getReadModel() {
-    return this.readDatabase.models['User'] as typeof UserModel;
   }
 
   async find(
@@ -38,19 +53,11 @@ export class UserReadRepositoryImpl implements UserReadRepository {
       sortOrder = 'ASC',
     } = query;
 
-    const conditions: Array<
-      Record<string, unknown> | ReturnType<typeof literal>
-    > = [];
+    const conditions = [];
 
-    const where: {
-      [Op.and]?: Array<Record<string, unknown> | ReturnType<typeof literal>>;
-    } = {};
-
-    const order: Array<[string | ReturnType<typeof literal>, string]> = [
-      [sortField ?? 'email', sortOrder ?? 'ASC'],
-    ];
-
-    const { searchCondition } = buildFullTextSearch(searchTerm);
+    const { searchCondition } = buildFullTextSearch(searchTerm, {
+      searchVectorColumn: 'users.search_vector',
+    });
 
     if (searchCondition) {
       conditions.push(searchCondition);
@@ -58,29 +65,57 @@ export class UserReadRepositoryImpl implements UserReadRepository {
 
     if (userGroupId) {
       conditions.push(
-        literal(
-          `EXISTS (SELECT 1 FROM user_group_users WHERE user_group_users.user_id = "User".id AND user_group_users.user_group_id = :userGroupId)`
-        )
+        sql`exists (select 1 from user_group_users where user_group_users.user_id = ${users.id} and user_group_users.user_group_id = ${userGroupId})`
       );
     }
 
-    if (conditions.length > 0) {
-      where[Op.and] = conditions;
-    }
+    const whereCondition =
+      conditions.length > 0 ? and(...conditions) : undefined;
 
     const attributes = fields
       ? ['id', ...fields.filter((field) => field !== 'id')]
       : undefined;
+    const selectedColumns = attributes
+      ? attributes.reduce<
+          Record<
+            string,
+            (typeof userSelectColumns)[keyof typeof userSelectColumns]
+          >
+        >((columns, attribute) => {
+          columns[attribute] =
+            userSelectColumns[attribute as keyof typeof userSelectColumns];
+          return columns;
+        }, {})
+      : userSelectColumns;
 
-    const ReadUserModel = this.getReadModel();
-    const { count, rows } = await ReadUserModel.findAndCountAll({
-      where,
-      limit: itemsPerPage,
-      offset: pageIndex * itemsPerPage,
-      order,
-      attributes,
-      replacements: userGroupId ? { userGroupId } : undefined,
-    });
+    const sortColumn = (() => {
+      switch (sortField) {
+        case 'username':
+          return users.username;
+        case 'createdAt':
+          return users.createdAt;
+        case 'lastModifiedAt':
+          return users.lastModifiedAt;
+        default:
+          return users.email;
+      }
+    })();
+    const orderBy = sortOrder === 'DESC' ? desc(sortColumn) : asc(sortColumn);
+
+    const [countResult, rows] = await Promise.all([
+      this.readDatabase
+        .select({ count: sql<number>`count(*)`.as('count') })
+        .from(users)
+        .where(whereCondition ?? sql`true`),
+      this.readDatabase
+        .select(selectedColumns)
+        .from(users)
+        .where(whereCondition ?? sql`true`)
+        .orderBy(orderBy)
+        .limit(itemsPerPage)
+        .offset(pageIndex * itemsPerPage),
+    ]);
+    const count = Number(countResult[0]?.count ?? 0);
 
     return {
       data: rows.map((row) => pickFields(row, attributes) as UserReadModel),
@@ -92,11 +127,14 @@ export class UserReadRepositoryImpl implements UserReadRepository {
   }
 
   async findById(id: string): Promise<UserReadModel | undefined> {
-    const ReadUserModel = this.getReadModel();
-    const user = await ReadUserModel.findByPk(id);
+    const [user] = await this.readDatabase
+      .select()
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
     if (!user) {
       return undefined;
     }
-    return user.toJSON() as UserReadModel;
+    return user as UserReadModel;
   }
 }

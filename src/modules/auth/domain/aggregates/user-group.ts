@@ -6,7 +6,7 @@ import {
   type BaseAggregateParams,
   type Uuid,
 } from '@app/common';
-import { UserGroupEventType } from '@app/modules/auth/domain/enums/user-group-event-type';
+import { UserGroupEventType } from '@app/modules/auth/domain';
 
 enum UserGroupField {
   NAME = 'name',

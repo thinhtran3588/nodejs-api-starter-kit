@@ -1,7 +1,6 @@
 import { v5 as uuidv5 } from 'uuid';
 import { Uuid } from '@app/common';
-import type { UserIdGeneratorService } from '@app/modules/auth/domain/interfaces/services/user-id-generator-service';
-import type { Email } from '@app/modules/auth/domain/value-objects/email';
+import type { Email, UserIdGeneratorService } from '@app/modules/auth/domain';
 
 const APP_CODE = process.env['APP_CODE'] ?? 'app';
 /**

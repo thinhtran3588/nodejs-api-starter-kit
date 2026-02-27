@@ -1,8 +1,10 @@
 import { ValidationException, type Uuid } from '@app/common';
-import { type UserGroup } from '@app/modules/auth/domain/aggregates/user-group';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import type { UserGroupRepository } from '@app/modules/auth/domain/interfaces/repositories/user-group-repository';
-import type { UserGroupValidatorService } from '@app/modules/auth/domain/interfaces/services/user-group-validator-service';
+import {
+  AuthExceptionCode,
+  type UserGroup,
+  type UserGroupRepository,
+  type UserGroupValidatorService,
+} from '@app/modules/auth/domain';
 
 /**
  * Infrastructure implementation of UserGroupValidatorService

@@ -1,6 +1,6 @@
-import type { Transaction } from 'sequelize';
 import type { DomainEvent } from '@app/common/domain/domain-event';
 import type { Uuid } from '@app/common/domain/uuid';
+import type { DatabaseTransaction } from '@app/common/interfaces/database';
 
 /**
  * Repository interface for domain event persistence
@@ -11,7 +11,7 @@ export interface DomainEventRepository {
    * @param events - Array of domain events to save
    * @param transaction - Database transaction to use
    */
-  save(events: DomainEvent[], transaction: Transaction): Promise<void>;
+  save(events: DomainEvent[], transaction: DatabaseTransaction): Promise<void>;
 
   /**
    * Finds all domain events for a specific aggregate

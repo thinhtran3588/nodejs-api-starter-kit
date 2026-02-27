@@ -1,5 +1,5 @@
 import type { DomainEvent, EventHandler } from '@app/common';
-import { UserEventType } from '@app/modules/auth/domain/enums/user-event-type';
+import { UserEventType } from '@app/modules/auth/domain';
 
 /**
  * Event handler for USER_REGISTERED events
