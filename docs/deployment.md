@@ -11,7 +11,8 @@ This guide provides instructions for building and deploying the API application.
 5. [Health Check](#health-check)
 6. [Production Checklist](#production-checklist)
 7. [Docker Compose](#docker-compose)
-8. [Troubleshooting](#troubleshooting)
+8. [Cloudflare Workers (Wrangler)](#cloudflare-workers-wrangler)
+9. [Troubleshooting](#troubleshooting)
 
 ## Build and Push Docker Image
 
@@ -158,6 +159,56 @@ docker-compose up -d
 ```
 
 This will start PostgreSQL and the application with appropriate environment variables.
+
+## Cloudflare Workers (Wrangler)
+
+This project includes Wrangler configuration in `wrangler.toml` so you can deploy directly to Cloudflare Workers.
+
+### Prerequisites
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Authenticate with Cloudflare:
+
+```bash
+npx wrangler login
+```
+
+### Configure secrets and environment variables
+
+Set sensitive values as Cloudflare secrets:
+
+```bash
+npx wrangler secret put WRITE_DATABASE_URI
+npx wrangler secret put READ_DATABASE_URI
+npx wrangler secret put FIREBASE_SERVICE_ACCOUNT_JSON
+npx wrangler secret put FIREBASE_API_KEY
+npx wrangler secret put JWT_PRIVATE_KEY
+npx wrangler secret put JWT_PUBLIC_KEY
+```
+
+Set non-sensitive runtime variables in `wrangler.toml` under `[vars]` if needed.
+
+### Local development with Wrangler
+
+```bash
+npm run cf:dev
+```
+
+### Deploy to Cloudflare Workers
+
+```bash
+npm run cf:deploy
+```
+
+### Notes
+
+- `compatibility_flags = ["nodejs_compat"]` is enabled for Node.js APIs compatibility.
+- Ensure your PostgreSQL setup is reachable from Cloudflare runtime (for example, via a secure public endpoint or a Cloudflare-supported connectivity strategy).
 
 ## Troubleshooting
 

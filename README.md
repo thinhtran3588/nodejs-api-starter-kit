@@ -45,6 +45,8 @@ The API runs at `http://localhost:3000`.
 | -------------------- | ----------------------------------------------- |
 | `npm run dev`        | Start development server with hot reload        |
 | `npm run build`      | Build TypeScript to JavaScript                  |
+| `npm run cf:dev`     | Run the API locally using Cloudflare Wrangler   |
+| `npm run cf:deploy`  | Deploy the API to Cloudflare Workers            |
 | `npm run validate`   | Run lint, format check, and tests with coverage |
 | `npm run migrate`    | Run database migrations                         |
 
