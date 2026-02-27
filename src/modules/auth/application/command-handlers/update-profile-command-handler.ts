@@ -8,12 +8,14 @@ import {
   type CommandHandler,
   type EventDispatcher,
 } from '@app/common';
-import type { UpdateProfileCommand } from '@app/modules/auth/application/interfaces/commands/update-profile-command';
-import { User } from '@app/modules/auth/domain/aggregates/user';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
-import { Username } from '@app/modules/auth/domain/value-objects/username';
+import {
+  AuthExceptionCode,
+  User,
+  Username,
+  type UserRepository,
+  type UserValidatorService,
+} from '@app/modules/auth/domain';
+import type { UpdateProfileCommand } from '@app/modules/auth/interfaces';
 
 export class UpdateProfileCommandHandler
   implements CommandHandler<UpdateProfileCommand, void>

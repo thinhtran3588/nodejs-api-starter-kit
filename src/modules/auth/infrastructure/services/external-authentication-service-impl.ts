@@ -1,12 +1,10 @@
 import admin, { type ServiceAccount } from 'firebase-admin';
 import type { UserRecord } from 'firebase-admin/auth';
+import { AuthorizationExceptionCode, ValidationException } from '@app/common';
 import {
-  AuthorizationExceptionCode,
-  BusinessException,
-  ValidationException,
-} from '@app/common';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import type { ExternalAuthenticationService } from '@app/modules/auth/domain/interfaces/services/external-authentication-service';
+  AuthExceptionCode,
+  type ExternalAuthenticationService,
+} from '@app/modules/auth/domain';
 
 /**
  * Infrastructure implementation of ExternalAuthenticationService
@@ -153,7 +151,7 @@ export class FirebaseAuthenticationService
     };
 
     if (!response.ok || data.error) {
-      throw new BusinessException(
+      throw new ValidationException(
         AuthExceptionCode.EXTERNAL_AUTHENTICATION_ERROR,
         undefined,
         'Failed to verify password with Firebase'
@@ -161,7 +159,7 @@ export class FirebaseAuthenticationService
     }
 
     if (!data.localId || !data.idToken) {
-      throw new BusinessException(
+      throw new ValidationException(
         AuthExceptionCode.EXTERNAL_AUTHENTICATION_ERROR,
         undefined,
         'Firebase API response missing userId or idToken'

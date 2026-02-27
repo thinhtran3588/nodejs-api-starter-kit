@@ -5,10 +5,12 @@ import {
   type CommandHandler,
   type EventDispatcher,
 } from '@app/common';
-import type { DeleteUserCommand } from '@app/modules/auth/application/interfaces/commands/delete-user-command';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
+import {
+  AuthRole,
+  type UserRepository,
+  type UserValidatorService,
+} from '@app/modules/auth/domain';
+import type { DeleteUserCommand } from '@app/modules/auth/interfaces';
 
 export class DeleteUserCommandHandler
   implements CommandHandler<DeleteUserCommand, void>

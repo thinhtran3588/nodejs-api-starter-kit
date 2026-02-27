@@ -1,47 +1,64 @@
-import type { CreationAttributes, Transaction } from 'sequelize';
+import {
+  asc,
+  eq,
+  type InferInsertModel,
+  type InferSelectModel,
+} from 'drizzle-orm';
 import { DomainEvent } from '@app/common/domain/domain-event';
 import { Uuid } from '@app/common/domain/uuid';
+import type {
+  DatabaseClient,
+  DatabaseTransaction,
+} from '@app/common/interfaces/database';
 import type { DomainEventRepository } from '@app/common/interfaces/domain-event-repository';
 
-import { DomainEventModel } from './domain-event-model';
+import { domainEvents } from './schema';
 
 /**
- * Sequelize implementation of DomainEventRepository
+ * Drizzle implementation of DomainEventRepository
  */
-export class SequelizeDomainEventRepository implements DomainEventRepository {
-  async save(events: DomainEvent[], transaction: Transaction): Promise<void> {
+export class DrizzleDomainEventRepository implements DomainEventRepository {
+  private readonly writeDatabase: DatabaseClient;
+
+  constructor({ writeDatabase }: { writeDatabase: DatabaseClient }) {
+    this.writeDatabase = writeDatabase;
+  }
+
+  async save(
+    events: DomainEvent[],
+    transaction: DatabaseTransaction
+  ): Promise<void> {
     if (events.length === 0) {
       return;
     }
 
-    await DomainEventModel.bulkCreate(
-      events.map((event) =>
-        event.toJson()
-      ) as CreationAttributes<DomainEventModel>[],
-      { transaction }
+    const payloads = events.map(
+      (event) => event.toJson() as InferInsertModel<typeof domainEvents>
     );
+    await transaction.insert(domainEvents).values(payloads);
   }
 
   async findByAggregateId(aggregateId: Uuid): Promise<DomainEvent[]> {
-    const models = await DomainEventModel.findAll({
-      where: {
-        aggregateId: aggregateId.getValue(),
-      },
-      order: [['createdAt', 'ASC']],
-    });
+    const rows = await this.writeDatabase
+      .select()
+      .from(domainEvents)
+      .where(eq(domainEvents.aggregateId, aggregateId.getValue()))
+      .orderBy(asc(domainEvents.createdAt));
 
-    return models.map(
-      (model) =>
+    return rows.map(
+      (row: InferSelectModel<typeof domainEvents>) =>
         new DomainEvent({
-          id: Uuid.create(model.id, 'id'),
-          aggregateId: Uuid.create(model.aggregateId, 'aggregateId'),
-          aggregateName: model.aggregateName,
-          eventType: model.eventType,
-          data: model.data,
-          metadata: model.metadata ?? undefined,
-          createdAt: model.createdAt,
-          createdBy: model.createdBy
-            ? Uuid.create(model.createdBy, 'createdBy')
+          id: Uuid.create(row.id, 'id'),
+          aggregateId: Uuid.create(row.aggregateId, 'aggregateId'),
+          aggregateName: row.aggregateName,
+          eventType: row.eventType,
+          data: row.data as Record<string, unknown>,
+          metadata: row.metadata
+            ? (row.metadata as Record<string, unknown>)
+            : undefined,
+          createdAt: row.createdAt,
+          createdBy: row.createdBy
+            ? Uuid.create(row.createdBy, 'createdBy')
             : undefined,
         })
     );

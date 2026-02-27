@@ -7,19 +7,21 @@ import {
   type EventDispatcher,
   type JwtService,
 } from '@app/common';
+import {
+  AuthExceptionCode,
+  Email,
+  SignInType,
+  User,
+  type ExternalAuthenticationService,
+  type UserGroupRepository,
+  type UserIdGeneratorService,
+  type UserRepository,
+  type UserValidatorService,
+} from '@app/modules/auth/domain';
 import type {
   RequestAccessTokenCommand,
   RequestAccessTokenResult,
-} from '@app/modules/auth/application/interfaces/commands/request-access-token-command';
-import { User } from '@app/modules/auth/domain/aggregates/user';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { SignInType } from '@app/modules/auth/domain/enums/sign-in-type';
-import type { UserGroupRepository } from '@app/modules/auth/domain/interfaces/repositories/user-group-repository';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { ExternalAuthenticationService } from '@app/modules/auth/domain/interfaces/services/external-authentication-service';
-import type { UserIdGeneratorService } from '@app/modules/auth/domain/interfaces/services/user-id-generator-service';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
-import { Email } from '@app/modules/auth/domain/value-objects/email';
+} from '@app/modules/auth/interfaces';
 
 export class RequestAccessTokenCommandHandler
   implements CommandHandler<RequestAccessTokenCommand, RequestAccessTokenResult>

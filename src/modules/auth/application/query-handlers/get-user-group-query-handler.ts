@@ -5,11 +5,12 @@ import {
   type AuthorizationService,
   type QueryHandler,
 } from '@app/common';
-import type { GetUserGroupQuery } from '@app/modules/auth/application/interfaces/queries/get-user-group-query';
-import type { UserGroupReadModel } from '@app/modules/auth/application/interfaces/queries/user-group-read-model';
-import type { UserGroupReadRepository } from '@app/modules/auth/application/interfaces/repositories/user-group-read-repository';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
+import { AuthExceptionCode, AuthRole } from '@app/modules/auth/domain';
+import type {
+  GetUserGroupQuery,
+  UserGroupReadModel,
+  UserGroupReadRepository,
+} from '@app/modules/auth/interfaces';
 
 export class GetUserGroupQueryHandler
   implements QueryHandler<GetUserGroupQuery, UserGroupReadModel>

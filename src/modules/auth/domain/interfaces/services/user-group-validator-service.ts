@@ -1,5 +1,5 @@
 import type { Uuid } from '@app/common';
-import type { UserGroup } from '@app/modules/auth/domain/aggregates/user-group';
+import type { UserGroup } from '@app/modules/auth/domain';
 
 /**
  * Service interface for user group validation operations

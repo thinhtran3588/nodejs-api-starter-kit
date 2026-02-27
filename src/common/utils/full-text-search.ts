@@ -1,4 +1,4 @@
-import { literal } from 'sequelize';
+import { sql, type SQL } from 'drizzle-orm';
 
 /**
  * Configuration for full-text search
@@ -24,12 +24,12 @@ export interface FullTextSearchResult {
    * The search condition to use in WHERE clause
    * Returns undefined if searchTerm is empty or invalid
    */
-  searchCondition: ReturnType<typeof literal> | undefined;
+  searchCondition: SQL | undefined;
   /**
    * The rank literal to use in ORDER BY clause for relevance sorting
    * Returns undefined if searchTerm is empty or invalid
    */
-  rankLiteral: ReturnType<typeof literal> | undefined;
+  rankLiteral: SQL | undefined;
 }
 
 /**
@@ -49,7 +49,7 @@ export interface FullTextSearchResult {
  * ```typescript
  * const { searchCondition, rankLiteral } = buildFullTextSearch('john doe');
  * if (searchCondition) {
- *   whereClause[Op.and] = [searchCondition];
+ *   whereConditions.push(searchCondition);
  * }
  * if (rankLiteral) {
  *   orderClause = [[rankLiteral, 'DESC'], ['createdAt', 'DESC']];
@@ -74,23 +74,31 @@ export function buildFullTextSearch(
   // Trim the search term
   const trimmedSearchTerm = searchTerm.trim();
 
-  // Escape single quotes for SQL (plainto_tsquery handles other special chars)
-  // This is safe because plainto_tsquery further sanitizes the input
-  const escapedTerm = trimmedSearchTerm.replace(/'/g, "''");
+  const safeVectorColumn = /^[a-zA-Z0-9_.]+$/.test(searchVectorColumn)
+    ? searchVectorColumn
+    : 'search_vector';
+  const safeDictionary = /^[a-zA-Z0-9_]+$/.test(dictionary)
+    ? dictionary
+    : 'simple';
+  const dictionaryLiteral = `'${safeDictionary}'`;
 
-  // Construct the full-text search condition using literal SQL
+  // Construct the full-text search condition using SQL templates
   // unaccent_immutable() is applied to the search term to match the unaccented search_vector
   // plainto_tsquery is a PostgreSQL function that safely handles user input
   // Example: searching "tam" will match "tâm", "tấm", "tẩm", etc.
-  const searchCondition = literal(
-    `${searchVectorColumn} @@ plainto_tsquery('${dictionary}', unaccent_immutable('${escapedTerm}'))`
-  );
+  const searchCondition = sql`
+    ${sql.raw(safeVectorColumn)} @@ plainto_tsquery(${sql.raw(
+      dictionaryLiteral
+    )}, unaccent_immutable(${trimmedSearchTerm}))
+  `;
 
   // Order by relevance (ts_rank) when searching
   // Higher rank = better match
-  const rankLiteral = literal(
-    `ts_rank(${searchVectorColumn}, plainto_tsquery('${dictionary}', unaccent_immutable('${escapedTerm}')))`
-  );
+  const rankLiteral = sql`
+    ts_rank(${sql.raw(safeVectorColumn)}, plainto_tsquery(${sql.raw(
+      dictionaryLiteral
+    )}, unaccent_immutable(${trimmedSearchTerm})))
+  `;
 
   return {
     searchCondition,

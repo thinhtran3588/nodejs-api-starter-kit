@@ -5,11 +5,13 @@ import {
   type CommandHandler,
   type EventDispatcher,
 } from '@app/common';
-import type { ToggleUserStatusCommand } from '@app/modules/auth/application/interfaces/commands/toggle-user-status-command';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { ExternalAuthenticationService } from '@app/modules/auth/domain/interfaces/services/external-authentication-service';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
+import {
+  AuthRole,
+  type ExternalAuthenticationService,
+  type UserRepository,
+  type UserValidatorService,
+} from '@app/modules/auth/domain';
+import type { ToggleUserStatusCommand } from '@app/modules/auth/interfaces';
 
 export class ToggleUserStatusCommandHandler
   implements CommandHandler<ToggleUserStatusCommand, void>

@@ -467,7 +467,7 @@ To achieve 100% coverage:
 1. **Test all code paths**: Every if/else, switch case, ternary operator
 2. **Test edge cases**: Null, undefined, empty strings, empty arrays, boundary values
 3. **Test error paths**: Exception throwing, error handling
-4. **Test all branches**: Use type assertions (`as any`) if needed to test null values
+4. **Test all branches**: Use explicit test-only input types when null/undefined cases are required
 5. **Run coverage report**: `npm run test:coverage` to identify uncovered code
 6. **Fix coverage gaps**: Add tests for any uncovered code before marking tasks complete
 
@@ -766,8 +766,10 @@ it('should not execute action when condition is false', () => {
 When testing null/undefined values that TypeScript types don't allow, use type assertions:
 
 ```typescript
+type TestInput = Parameters<typeof functionUnderTest>[0] | null;
+
 it('should handle null value', () => {
-  const result = functionUnderTest(null as any);
+  const result = functionUnderTest(null as TestInput);
   expect(result).toBe(expectedValue);
 });
 ```

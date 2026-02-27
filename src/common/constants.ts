@@ -23,3 +23,8 @@ export const SEARCH_TERM_MAX_LENGTH =
  */
 export const TEXT_MAX_LENGTH = 255;
 export const TEXT_DESCRIPTION_MAX_LENGTH = 1000;
+
+/**
+ * Sort constants
+ */
+export const SORT_ORDERS = ['ASC', 'DESC'] as const;

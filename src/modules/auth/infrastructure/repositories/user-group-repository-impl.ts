@@ -1,49 +1,48 @@
-import {
-  Op,
-  QueryTypes,
-  type Model,
-  type ModelStatic,
-  type Transaction,
-} from 'sequelize';
+import { and, eq, ne, type InferSelectModel } from 'drizzle-orm';
 import {
   BaseRepositoryImpl,
   extractBaseAggregateParams,
+  type DatabaseClient,
+  type DatabaseTransaction,
   type DomainEventRepository,
   type Uuid,
 } from '@app/common';
-import { UserGroup } from '@app/modules/auth/domain/aggregates/user-group';
-import type { UserGroupRepository } from '@app/modules/auth/domain/interfaces/repositories/user-group-repository';
-import { UserGroupModel } from '@app/modules/auth/infrastructure/models/user-group-model';
-import { UserGroupRoleModel } from '@app/modules/auth/infrastructure/models/user-group-role-model';
-import { UserGroupUserModel } from '@app/modules/auth/infrastructure/models/user-group-user-model';
+import { UserGroup, type UserGroupRepository } from '@app/modules/auth/domain';
+import { schema } from '@app/modules/auth/infrastructure/schema';
+
+const { roles, userGroupRoles, userGroupUsers, userGroups } = schema;
 
 /**
- * Sequelize implementation of UserGroupRepository
- * Uses PostgreSQL database via Sequelize ORM
+ * Drizzle implementation of UserGroupRepository
+ * Uses PostgreSQL database via Drizzle ORM
  */
 export class UserGroupRepositoryImpl
-  extends BaseRepositoryImpl<UserGroup>
+  extends BaseRepositoryImpl<UserGroup, typeof userGroups>
   implements UserGroupRepository
 {
   constructor({
+    writeDatabase,
     domainEventRepository,
   }: {
+    writeDatabase: DatabaseClient;
     domainEventRepository: DomainEventRepository;
   }) {
-    super({ domainEventRepository });
+    super({ writeDatabase, domainEventRepository });
   }
 
   protected getAggregateName(): string {
     return 'UserGroup';
   }
 
-  protected getModel(): ModelStatic<Model> {
-    return UserGroupModel;
+  protected getTable(): typeof userGroups {
+    return userGroups;
   }
   /**
-   * Convert Sequelize model to domain UserGroup aggregate
+   * Convert database row to domain UserGroup aggregate
    */
-  protected toDomain(userGroupModel: UserGroupModel): UserGroup {
+  protected toDomain(
+    userGroupModel: InferSelectModel<typeof userGroups>
+  ): UserGroup {
     return new UserGroup({
       ...extractBaseAggregateParams(userGroupModel),
       name: userGroupModel.name,
@@ -56,28 +55,24 @@ export class UserGroupRepositoryImpl
   // ============================================================================
 
   async userGroupExists(id: Uuid): Promise<boolean> {
-    const userGroupModel = await UserGroupModel.findByPk(id.getValue(), {
-      attributes: ['id'],
-    });
+    const [userGroupModel] = await this.writeDatabase
+      .select({ id: userGroups.id })
+      .from(userGroups)
+      .where(eq(userGroups.id, id.getValue()))
+      .limit(1);
     return Boolean(userGroupModel);
   }
 
   async nameExists(name: string, excludeUserGroupId?: Uuid): Promise<boolean> {
-    const whereClause: {
-      name: string;
-      id?: { [Op.ne]: string };
-    } = {
-      name,
-    };
-
-    if (excludeUserGroupId) {
-      whereClause.id = { [Op.ne]: excludeUserGroupId.getValue() };
-    }
-
-    const userGroupModel = await UserGroupModel.findOne({
-      where: whereClause,
-      attributes: ['id'],
-    });
+    const baseCondition = eq(userGroups.name, name);
+    const whereCondition = excludeUserGroupId
+      ? and(baseCondition, ne(userGroups.id, excludeUserGroupId.getValue()))
+      : baseCondition;
+    const [userGroupModel] = await this.writeDatabase
+      .select({ id: userGroups.id })
+      .from(userGroups)
+      .where(whereCondition)
+      .limit(1);
     return Boolean(userGroupModel);
   }
 
@@ -86,73 +81,72 @@ export class UserGroupRepositoryImpl
   // ============================================================================
 
   async userInGroup(userGroupId: Uuid, userId: Uuid): Promise<boolean> {
-    const association = await UserGroupUserModel.findOne({
-      where: {
-        userGroupId: userGroupId.getValue(),
-        userId: userId.getValue(),
-      },
-    });
+    const [association] = await this.writeDatabase
+      .select({ userId: userGroupUsers.userId })
+      .from(userGroupUsers)
+      .where(
+        and(
+          eq(userGroupUsers.userGroupId, userGroupId.getValue()),
+          eq(userGroupUsers.userId, userId.getValue())
+        )
+      )
+      .limit(1);
     return Boolean(association);
   }
 
   async addRole(
     userGroupId: Uuid,
     roleId: Uuid,
-    transaction?: Transaction
+    transaction?: DatabaseTransaction
   ): Promise<void> {
-    await UserGroupRoleModel.create(
-      {
-        userGroupId: userGroupId.getValue(),
-        roleId: roleId.getValue(),
-        createdAt: new Date(),
-      },
-      { transaction }
-    );
+    const executor = transaction ?? this.writeDatabase;
+    await executor.insert(userGroupRoles).values({
+      userGroupId: userGroupId.getValue(),
+      roleId: roleId.getValue(),
+      createdAt: new Date(),
+    });
   }
 
   async removeRole(
     userGroupId: Uuid,
     roleId: Uuid,
-    transaction?: Transaction
+    transaction?: DatabaseTransaction
   ): Promise<void> {
-    await UserGroupRoleModel.destroy({
-      where: {
-        userGroupId: userGroupId.getValue(),
-        roleId: roleId.getValue(),
-      },
-      transaction,
-    });
+    const executor = transaction ?? this.writeDatabase;
+    await executor
+      .delete(userGroupRoles)
+      .where(
+        and(
+          eq(userGroupRoles.userGroupId, userGroupId.getValue()),
+          eq(userGroupRoles.roleId, roleId.getValue())
+        )
+      );
   }
 
   async roleInGroup(userGroupId: Uuid, roleId: Uuid): Promise<boolean> {
-    const association = await UserGroupRoleModel.findOne({
-      where: {
-        userGroupId: userGroupId.getValue(),
-        roleId: roleId.getValue(),
-      },
-    });
+    const [association] = await this.writeDatabase
+      .select({ roleId: userGroupRoles.roleId })
+      .from(userGroupRoles)
+      .where(
+        and(
+          eq(userGroupRoles.userGroupId, userGroupId.getValue()),
+          eq(userGroupRoles.roleId, roleId.getValue())
+        )
+      )
+      .limit(1);
     return Boolean(association);
   }
 
   async getUserRoleCodes(userId: Uuid): Promise<string[]> {
-    const { sequelize } = UserGroupRoleModel;
-    if (!sequelize) {
-      throw new Error('Sequelize instance not found');
-    }
-
-    const results = await sequelize.query<{ code: string }>(
-      `
-      SELECT DISTINCT r.code
-      FROM user_group_roles ugr
-      INNER JOIN user_group_users ugu ON ugr.user_group_id = ugu.user_group_id
-      INNER JOIN roles r ON ugr.role_id = r.id
-      WHERE ugu.user_id = :userId
-      `,
-      {
-        replacements: { userId: userId.getValue() },
-        type: QueryTypes.SELECT,
-      }
-    );
+    const results = await this.writeDatabase
+      .selectDistinct({ code: roles.code })
+      .from(userGroupRoles)
+      .innerJoin(
+        userGroupUsers,
+        eq(userGroupRoles.userGroupId, userGroupUsers.userGroupId)
+      )
+      .innerJoin(roles, eq(userGroupRoles.roleId, roles.id))
+      .where(eq(userGroupUsers.userId, userId.getValue()));
 
     return results.map(({ code }) => code);
   }

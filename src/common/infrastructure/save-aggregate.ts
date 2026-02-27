@@ -1,27 +1,27 @@
-import type {
-  Identifier,
-  InferAttributes,
-  InferCreationAttributes,
-  Model,
-  ModelStatic,
-  Sequelize,
-  Transaction,
-  WhereOptions,
-} from 'sequelize';
+import { and, eq, type InferInsertModel } from 'drizzle-orm';
+import type { AnyPgTable, PgColumn } from 'drizzle-orm/pg-core';
 import type { BaseAggregate } from '@app/common/domain/base-aggregate';
 import { ValidationErrorCode } from '@app/common/enums/validation-error-code';
+import type {
+  DatabaseClient,
+  DatabaseTransaction,
+} from '@app/common/interfaces/database';
 import { ValidationException } from '@app/common/utils/errors';
 
 export interface SaveAggregateParams<
   TAggregate extends BaseAggregate = BaseAggregate,
-  TModel extends Model<
-    InferAttributes<TModel>,
-    InferCreationAttributes<TModel>
-  > = Model<InferAttributes<Model>, InferCreationAttributes<Model>>,
+  TTable extends AnyPgTable & {
+    id: PgColumn;
+    version: PgColumn;
+  } = AnyPgTable & {
+    id: PgColumn;
+    version: PgColumn;
+  },
 > {
   aggregate: TAggregate;
-  model: ModelStatic<TModel>;
-  postSaveCallback?: (transaction: Transaction) => Promise<void>;
+  table: TTable;
+  writeDatabase: DatabaseClient;
+  postSaveCallback?: (transaction: DatabaseTransaction) => Promise<void>;
 }
 
 /**
@@ -31,12 +31,11 @@ export interface SaveAggregateParams<
  * transactional support and optimistic locking:
  *
  * 1. For new aggregates (version === 0):
- *    - Creates the model in the database with version 0 using full aggregate data
+ *    - Inserts the row in the database with version 0 using full aggregate data
  *    - Executes postSaveCallback if provided (within transaction)
- *    - Returns the id from the created model
  *
  * 2. For existing aggregates (version >= 1):
- *    - Updates the model where id matches and version equals (aggregate.version - 1)
+ *    - Updates the row where id matches and version equals (aggregate.version - 1)
  *    - Validates that exactly one row was affected (optimistic locking check)
  *    - If no rows affected, throws ValidationException with version mismatch details
  *    - Executes postSaveCallback if provided (within transaction)
@@ -57,30 +56,31 @@ export interface SaveAggregateParams<
  * If the update fails (version mismatch), the transaction is rolled back.
  *
  * @template TAggregate - The aggregate type (must extend BaseAggregate)
- * @param params - Object containing aggregate, model, and optional postSaveCallback
+ * @param params - Object containing aggregate, table, database, and optional postSaveCallback
  * @param params.aggregate - The aggregate to save
- * @param params.model - The Sequelize model class to use for persistence
+ * @param params.table - The Drizzle table to use for persistence
+ * @param params.writeDatabase - The Drizzle database client
  * @param params.postSaveCallback - Optional callback executed after successful save (within transaction, for both new and existing aggregates)
- * @returns The id of the saved aggregate (from model.create for new, aggregate.id for updates)
  * @throws ValidationException if version mismatch occurs (OUTDATED_VERSION)
  */
 export async function saveAggregate<
   TAggregate extends BaseAggregate = BaseAggregate,
->(params: SaveAggregateParams<TAggregate>): Promise<void> {
-  const { aggregate, model, postSaveCallback } = params;
-  const database = model.sequelize as Sequelize;
-  if (!database) {
-    throw new Error('Missing Sequelize instance');
-  }
-  const transaction = await database.transaction();
-  try {
+  TTable extends AnyPgTable & {
+    id: PgColumn;
+    version: PgColumn;
+  } = AnyPgTable & {
+    id: PgColumn;
+    version: PgColumn;
+  },
+>(params: SaveAggregateParams<TAggregate, TTable>): Promise<void> {
+  const { aggregate, table, writeDatabase, postSaveCallback } = params;
+  const tableReference = table as AnyPgTable;
+  await writeDatabase.transaction(async (transaction) => {
     const id = aggregate.id.getValue();
 
     if (aggregate.version === 0) {
-      const data = aggregate.toJson();
-      await model.create(data, {
-        transaction,
-      });
+      const data = aggregate.toJson() as InferInsertModel<TTable>;
+      await transaction.insert(tableReference).values(data);
     } else {
       if (!aggregate.updatePrepared) {
         throw new ValidationException(ValidationErrorCode.FIELD_IS_INVALID, {
@@ -92,19 +92,17 @@ export async function saveAggregate<
 
       const currentVersion = aggregate.version - 1;
 
-      const [affectedRows] = await model.update(aggregate.toJson(), {
-        where: {
-          id,
-          version: currentVersion,
-        } as unknown as WhereOptions<Model>,
-        transaction,
-      });
+      const updateResult = await transaction
+        .update(tableReference)
+        .set(aggregate.toJson() as Partial<InferInsertModel<TTable>>)
+        .where(and(eq(table.id, id), eq(table.version, currentVersion)))
+        .execute();
 
-      if (affectedRows === 0) {
-        const currentModel = (await model.findByPk(id as Identifier, {
-          transaction,
-          attributes: ['version'],
-        })) as { version?: number } | null;
+      if (updateResult.rowCount === 0) {
+        const [currentModel] = await transaction
+          .select({ version: table.version })
+          .from(tableReference)
+          .where(eq(table.id, id));
         throw new ValidationException(ValidationErrorCode.OUTDATED_VERSION, {
           id,
           expectedVersion: currentVersion,
@@ -116,9 +114,5 @@ export async function saveAggregate<
     if (postSaveCallback) {
       await postSaveCallback(transaction);
     }
-    await transaction.commit();
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
+  });
 }

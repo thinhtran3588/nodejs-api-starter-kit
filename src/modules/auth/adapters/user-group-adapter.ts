@@ -1,8 +1,17 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment */
 import { z } from '@hono/zod-openapi';
+import type { GraphQLResolveInfo } from 'graphql';
 import {
   createApiRoute,
-  PAGINATION_MAX_ITEMS_PER_PAGE,
+  createBodySchema,
+  createFindQueryResultSchema,
+  createFindQuerySchema,
+  createIdSchema,
+  extractGraphQLFields,
+  includeJsonSchema,
+  includeRouteSchemas,
+  resolveServices,
+  SuccessResponseSchema,
+  toApplicationContext,
   type AdapterConfiguration,
   type App,
   type Context,
@@ -10,38 +19,33 @@ import {
 import {
   USER_GROUP_READ_MODEL_FIELDS,
   USER_GROUP_READ_MODEL_SORT_FIELDS,
-} from '@app/modules/auth/application/interfaces/queries/user-group-read-model';
-import type { AuthContainer } from '@app/modules/auth/interfaces';
+  type AuthContainer,
+  type CreateUserGroupCommand,
+  type FindUserGroupsQuery,
+  type UpdateUserGroupCommand,
+} from '@app/modules/auth/interfaces';
 
 const TAG = 'user-group';
-
 const UserGroupSchema = z
   .object({
-    id: z.string(),
+    id: z.uuid(),
     name: z.string(),
     description: z.string().nullable().optional(),
     version: z.number(),
-    createdAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
     createdBy: z.string().nullable().optional(),
-    lastModifiedAt: z.string().datetime(),
+    lastModifiedAt: z.iso.datetime().optional(),
     lastModifiedBy: z.string().nullable().optional(),
   })
   .openapi('UserGroup');
 
-const errorResponse = z.object({
-  error: z.string(),
-  data: z.any().optional(),
-});
+interface UserGroupIdArgs {
+  id: string;
+}
 
-function createErrorResponse(description: string) {
-  return {
-    content: {
-      'application/json': {
-        schema: errorResponse,
-      },
-    },
-    description,
-  };
+interface UserGroupRoleArgs {
+  id: string;
+  roleId: string;
 }
 
 export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
@@ -56,40 +60,26 @@ export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
           'Creates a new user group with the provided name and optional description.',
         security: [{ bearerAuth: [] }],
         request: {
-          body: {
-            content: {
-              'application/json': {
-                schema: z.object({
-                  name: z.string().max(255),
-                  description: z.string().max(2000).optional(),
-                }),
-              },
-            },
-          },
+          body: createBodySchema(
+            z.object({
+              name: z.string().max(255),
+              description: z.string().max(2000).optional(),
+            })
+          ),
         },
         responses: {
-          201: {
-            content: {
-              'application/json': {
-                schema: z.object({ id: z.string() }),
-              },
-            },
-            description: 'Created',
-          },
-          400: createErrorResponse('Bad request'),
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          500: createErrorResponse('Internal server error'),
+          ...includeJsonSchema(201, 'Created', z.object({ id: z.uuid() })),
+          ...includeRouteSchemas([400, 401, 403, 500]),
         },
       }),
       async (c) => {
-        const { createUserGroupCommandHandler } = c.var.container.cradle;
-        const body = c.req.valid('json');
+        const { createUserGroupCommandHandler } = resolveServices(c);
+        const data = c.req.valid('json');
         const result = await createUserGroupCommandHandler.execute(
-          body as any,
-          c as any
+          data,
+          toApplicationContext(c)
         );
-        return c.json(result as any, 201);
+        return c.json(result, 201);
       }
     );
 
@@ -103,64 +93,29 @@ export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
           'Searches for user groups by name or description with pagination support.',
         security: [{ bearerAuth: [] }],
         request: {
-          query: z.object({
-            searchTerm: z.string().optional(),
-            pageIndex: z.coerce.number().min(0).optional(),
-            itemsPerPage: z.coerce
-              .number()
-              .min(1)
-              .max(PAGINATION_MAX_ITEMS_PER_PAGE)
-              .optional(),
-            fields: z
-              .union([
-                z.enum(USER_GROUP_READ_MODEL_FIELDS as any),
-                z.array(z.enum(USER_GROUP_READ_MODEL_FIELDS as any)),
-              ])
-              .optional(),
-            sortField: z
-              .enum(USER_GROUP_READ_MODEL_SORT_FIELDS as any)
-              .optional(),
-            sortOrder: z.enum(['ASC', 'DESC']).optional(),
-          }),
+          query: createFindQuerySchema(
+            USER_GROUP_READ_MODEL_FIELDS,
+            USER_GROUP_READ_MODEL_SORT_FIELDS
+          ),
         },
         responses: {
-          200: {
-            content: {
-              'application/json': {
-                schema: z.object({
-                  data: z.array(UserGroupSchema),
-                  pagination: z.object({
-                    count: z.number(),
-                    pageIndex: z.number(),
-                  }),
-                }),
-              },
-            },
-            description: 'List of user groups',
-          },
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          500: createErrorResponse('Internal server error'),
+          ...includeJsonSchema(
+            200,
+            'List of user groups',
+            createFindQueryResultSchema(UserGroupSchema)
+          ),
+          ...includeRouteSchemas([401, 403, 500]),
         },
       }),
       async (c) => {
-        const { findUserGroupsQueryHandler } = c.var.container.cradle;
+        const { findUserGroupsQueryHandler } = resolveServices(c);
         const query = c.req.valid('query');
 
-        let fieldsArray: string[] | undefined;
-        if (query.fields) {
-          fieldsArray = Array.isArray(query.fields)
-            ? query.fields
-            : [query.fields];
-        }
-
-        const typedQuery = { ...query, fields: fieldsArray as any };
-
         const result = await findUserGroupsQueryHandler.execute(
-          typedQuery as any,
-          c as any
+          query,
+          toApplicationContext(c)
         );
-        return c.json(result as any, 200);
+        return c.json(result, 200);
       }
     );
 
@@ -174,30 +129,21 @@ export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
           'Retrieves a specific user group by its unique identifier.',
         security: [{ bearerAuth: [] }],
         request: {
-          params: z.object({
-            id: z.string().uuid(),
-          }),
+          params: createIdSchema(),
         },
         responses: {
-          200: {
-            content: {
-              'application/json': {
-                schema: UserGroupSchema,
-              },
-            },
-            description: 'User group details',
-          },
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          404: createErrorResponse('Not found'),
-          500: createErrorResponse('Internal server error'),
+          ...includeJsonSchema(200, 'User group details', UserGroupSchema),
+          ...includeRouteSchemas([401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { getUserGroupQueryHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
-        const result = await getUserGroupQueryHandler.execute({ id }, c as any);
-        return c.json(result as any, 200);
+        const { getUserGroupQueryHandler } = resolveServices(c);
+        const params = c.req.valid('param');
+        const result = await getUserGroupQueryHandler.execute(
+          params,
+          toApplicationContext(c)
+        );
+        return c.json(result, 200);
       }
     );
 
@@ -211,41 +157,32 @@ export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
           'Updates an existing user group. Both name and description can be updated.',
         security: [{ bearerAuth: [] }],
         request: {
-          params: z.object({
-            id: z.string().uuid(),
-          }),
-          body: {
-            content: {
-              'application/json': {
-                schema: z.object({
-                  name: z.string().max(255).optional(),
-                  description: z.string().max(2000).optional(),
-                }),
-              },
-            },
-          },
+          params: createIdSchema(),
+          body: createBodySchema(
+            z.object({
+              name: z.string().max(255).optional(),
+              description: z.string().max(2000).optional(),
+            })
+          ),
         },
         responses: {
-          200: {
-            description: 'Updated successfully',
-            content: { 'application/json': { schema: UserGroupSchema } },
-          },
-          400: createErrorResponse('Bad request'),
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          404: createErrorResponse('Not found'),
-          500: createErrorResponse('Internal server error'),
+          ...includeJsonSchema(
+            200,
+            'Updated successfully',
+            SuccessResponseSchema
+          ),
+          ...includeRouteSchemas([400, 401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { updateUserGroupCommandHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
-        const body = c.req.valid('json');
+        const { updateUserGroupCommandHandler } = resolveServices(c);
+        const params = c.req.valid('param');
+        const data = c.req.valid('json');
         await updateUserGroupCommandHandler.execute(
-          { id, ...body } as any,
-          c as any
+          { ...params, ...data },
+          toApplicationContext(c)
         );
-        return c.json({ id, ...body } as any, 200);
+        return c.json({ success: true }, 200);
       }
     );
 
@@ -259,30 +196,25 @@ export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
           'Deletes a user group by its unique identifier. This operation is permanent.',
         security: [{ bearerAuth: [] }],
         request: {
-          params: z.object({
-            id: z.string().uuid(),
-          }),
+          params: createIdSchema(),
         },
         responses: {
-          200: {
-            description: 'Deleted successfully',
-            content: {
-              'application/json': {
-                schema: z.object({ success: z.boolean() }),
-              },
-            },
-          },
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          404: createErrorResponse('Not found'),
-          500: createErrorResponse('Internal server error'),
+          ...includeJsonSchema(
+            200,
+            'Deleted successfully',
+            SuccessResponseSchema
+          ),
+          ...includeRouteSchemas([401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { deleteUserGroupCommandHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
-        await deleteUserGroupCommandHandler.execute({ id } as any, c as any);
-        return c.json({ success: true } as any, 200);
+        const { deleteUserGroupCommandHandler } = resolveServices(c);
+        const params = c.req.valid('param');
+        await deleteUserGroupCommandHandler.execute(
+          params,
+          toApplicationContext(c)
+        );
+        return c.json({ success: true }, 200);
       }
     );
 
@@ -295,44 +227,31 @@ export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
         description: 'Adds a single role to the specified user group.',
         security: [{ bearerAuth: [] }],
         request: {
-          params: z.object({
-            id: z.string().uuid(),
-          }),
-          body: {
-            content: {
-              'application/json': {
-                schema: z.object({
-                  roleId: z.string(),
-                }),
-              },
-            },
-          },
+          params: createIdSchema(),
+          body: createBodySchema(
+            z.object({
+              roleId: z.uuid(),
+            })
+          ),
         },
         responses: {
-          200: {
-            description: 'Role added successfully',
-            content: {
-              'application/json': {
-                schema: z.object({ success: z.boolean() }),
-              },
-            },
-          },
-          400: createErrorResponse('Bad request'),
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          404: createErrorResponse('Not found'),
-          500: createErrorResponse('Internal server error'),
+          ...includeJsonSchema(
+            200,
+            'Role added successfully',
+            SuccessResponseSchema
+          ),
+          ...includeRouteSchemas([400, 401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { addRoleToUserGroupCommandHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
-        const { roleId } = c.req.valid('json');
+        const { addRoleToUserGroupCommandHandler } = resolveServices(c);
+        const data = c.req.valid('json');
+        const params = c.req.valid('param');
         await addRoleToUserGroupCommandHandler.execute(
-          { userGroupId: id, roleId } as any,
-          c as any
+          { userGroupId: params.id, roleId: data.roleId },
+          toApplicationContext(c)
         );
-        return c.json({ success: true } as any, 200);
+        return c.json({ success: true }, 200);
       }
     );
 
@@ -346,127 +265,27 @@ export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
         security: [{ bearerAuth: [] }],
         request: {
           params: z.object({
-            id: z.string().uuid(),
-            roleId: z.string(),
+            id: z.uuid(),
+            roleId: z.uuid(),
           }),
         },
         responses: {
-          200: {
-            description: 'Role removed successfully',
-            content: {
-              'application/json': {
-                schema: z.object({ success: z.boolean() }),
-              },
-            },
-          },
-          400: createErrorResponse('Bad request'),
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          404: createErrorResponse('Not found'),
-          500: createErrorResponse('Internal server error'),
+          ...includeJsonSchema(
+            200,
+            'Role removed successfully',
+            SuccessResponseSchema
+          ),
+          ...includeRouteSchemas([400, 401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { removeRoleFromUserGroupCommandHandler } =
-          c.var.container.cradle;
-        const { id, roleId } = c.req.valid('param');
+        const { removeRoleFromUserGroupCommandHandler } = resolveServices(c);
+        const params = c.req.valid('param');
         await removeRoleFromUserGroupCommandHandler.execute(
-          { userGroupId: id, roleId } as any,
-          c as any
+          { userGroupId: params.id, roleId: params.roleId },
+          toApplicationContext(c)
         );
-        return c.json({ success: true } as any, 200);
-      }
-    );
-
-    app.openapi(
-      createApiRoute({
-        method: 'post',
-        path: '/user-groups/{id}/users',
-        tags: [TAG],
-        summary: 'Add a user to a user group',
-        description: 'Adds a single user to the specified user group.',
-        security: [{ bearerAuth: [] }],
-        request: {
-          params: z.object({
-            id: z.string().uuid(),
-          }),
-          body: {
-            content: {
-              'application/json': {
-                schema: z.object({
-                  userId: z.string(),
-                }),
-              },
-            },
-          },
-        },
-        responses: {
-          200: {
-            description: 'User added successfully',
-            content: {
-              'application/json': {
-                schema: z.object({ success: z.boolean() }),
-              },
-            },
-          },
-          400: createErrorResponse('Bad request'),
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          404: createErrorResponse('Not found'),
-          500: createErrorResponse('Internal server error'),
-        },
-      }),
-      async (c) => {
-        const { addUserToUserGroupCommandHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
-        const { userId } = c.req.valid('json');
-        await addUserToUserGroupCommandHandler.execute(
-          { userGroupId: id, userId } as any,
-          c as any
-        );
-        return c.json({ success: true } as any, 200);
-      }
-    );
-
-    app.openapi(
-      createApiRoute({
-        method: 'delete',
-        path: '/user-groups/{id}/users/{userId}',
-        tags: [TAG],
-        summary: 'Remove a user from a user group',
-        description: 'Removes a single user from the specified user group.',
-        security: [{ bearerAuth: [] }],
-        request: {
-          params: z.object({
-            id: z.string().uuid(),
-            userId: z.string(),
-          }),
-        },
-        responses: {
-          200: {
-            description: 'User removed successfully',
-            content: {
-              'application/json': {
-                schema: z.object({ success: z.boolean() }),
-              },
-            },
-          },
-          400: createErrorResponse('Bad request'),
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          404: createErrorResponse('Not found'),
-          500: createErrorResponse('Internal server error'),
-        },
-      }),
-      async (c) => {
-        const { removeUserFromUserGroupCommandHandler } =
-          c.var.container.cradle;
-        const { id, userId } = c.req.valid('param');
-        await removeUserFromUserGroupCommandHandler.execute(
-          { userGroupId: id, userId } as any,
-          c as any
-        );
-        return c.json({ success: true } as any, 200);
+        return c.json({ success: true }, 200);
       }
     );
   },
@@ -483,8 +302,13 @@ export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
         lastModifiedBy: String
       }
 
+      type UserGroupsResult {
+        data: [UserGroup!]!
+        pagination: PaginationInfo!
+      }
+
       extend type Query {
-        userGroups(searchTerm: String, pageIndex: Int, itemsPerPage: Int): [UserGroup]
+        userGroups(searchTerm: String, pageIndex: Int, itemsPerPage: Int): UserGroupsResult
         userGroup(id: String!): UserGroup
       }
 
@@ -494,80 +318,78 @@ export const userGroupAdapter: AdapterConfiguration<AuthContainer> = {
         deleteUserGroup(id: String!): Boolean
         addRoleToUserGroup(id: String!, roleId: String!): Boolean
         removeRoleFromUserGroup(id: String!, roleId: String!): Boolean
-        addUserToUserGroup(id: String!, userId: String!): Boolean
-        removeUserFromUserGroup(id: String!, userId: String!): Boolean
       }
     `,
     resolvers: {
-      userGroups: async (args: any, c: Context<AuthContainer>) => {
-        const { findUserGroupsQueryHandler } = c.var.container.cradle;
-        const result = await findUserGroupsQueryHandler.execute(args, c as any);
-        return result.data;
+      userGroups: async (
+        query: FindUserGroupsQuery,
+        c: Context<AuthContainer>,
+        info: GraphQLResolveInfo
+      ) => {
+        const { findUserGroupsQueryHandler } = resolveServices(c);
+        return findUserGroupsQueryHandler.execute(
+          {
+            ...query,
+            fields: extractGraphQLFields(info, 'data'),
+          },
+          toApplicationContext(c)
+        );
       },
-      userGroup: async ({ id }: { id: string }, c: Context<AuthContainer>) => {
-        const { getUserGroupQueryHandler } = c.var.container.cradle;
-        return getUserGroupQueryHandler.execute({ id }, c as any);
+      userGroup: async (query: UserGroupIdArgs, c: Context<AuthContainer>) => {
+        const { getUserGroupQueryHandler } = resolveServices(c);
+        return getUserGroupQueryHandler.execute(query, toApplicationContext(c));
       },
-      createUserGroup: async (args: any, c: Context<AuthContainer>) => {
-        const { createUserGroupCommandHandler } = c.var.container.cradle;
-        return createUserGroupCommandHandler.execute(args, c as any);
-      },
-      updateUserGroup: async (args: any, c: Context<AuthContainer>) => {
-        const { updateUserGroupCommandHandler } = c.var.container.cradle;
-        await updateUserGroupCommandHandler.execute(args, c as any);
-        return args;
-      },
-      deleteUserGroup: async (
-        { id }: { id: string },
+      createUserGroup: async (
+        command: CreateUserGroupCommand,
         c: Context<AuthContainer>
       ) => {
-        const { deleteUserGroupCommandHandler } = c.var.container.cradle;
-        await deleteUserGroupCommandHandler.execute({ id } as any, c as any);
+        const { createUserGroupCommandHandler } = resolveServices(c);
+        return createUserGroupCommandHandler.execute(
+          command,
+          toApplicationContext(c)
+        );
+      },
+      updateUserGroup: async (
+        command: UpdateUserGroupCommand,
+        c: Context<AuthContainer>
+      ) => {
+        const { updateUserGroupCommandHandler } = resolveServices(c);
+        await updateUserGroupCommandHandler.execute(
+          command,
+          toApplicationContext(c)
+        );
+        return command;
+      },
+      deleteUserGroup: async (
+        command: UserGroupIdArgs,
+        c: Context<AuthContainer>
+      ) => {
+        const { deleteUserGroupCommandHandler } = resolveServices(c);
+        await deleteUserGroupCommandHandler.execute(
+          command,
+          toApplicationContext(c)
+        );
         return true;
       },
       addRoleToUserGroup: async (
-        { id, roleId }: { id: string; roleId: string },
+        args: UserGroupRoleArgs,
         c: Context<AuthContainer>
       ) => {
-        const { addRoleToUserGroupCommandHandler } = c.var.container.cradle;
+        const { addRoleToUserGroupCommandHandler } = resolveServices(c);
         await addRoleToUserGroupCommandHandler.execute(
-          { userGroupId: id, roleId } as any,
-          c as any
+          { userGroupId: args.id, roleId: args.roleId },
+          toApplicationContext(c)
         );
         return true;
       },
       removeRoleFromUserGroup: async (
-        { id, roleId }: { id: string; roleId: string },
+        args: UserGroupRoleArgs,
         c: Context<AuthContainer>
       ) => {
-        const { removeRoleFromUserGroupCommandHandler } =
-          c.var.container.cradle;
+        const { removeRoleFromUserGroupCommandHandler } = resolveServices(c);
         await removeRoleFromUserGroupCommandHandler.execute(
-          { userGroupId: id, roleId } as any,
-          c as any
-        );
-        return true;
-      },
-      addUserToUserGroup: async (
-        { id, userId }: { id: string; userId: string },
-        c: Context<AuthContainer>
-      ) => {
-        const { addUserToUserGroupCommandHandler } = c.var.container.cradle;
-        await addUserToUserGroupCommandHandler.execute(
-          { userGroupId: id, userId } as any,
-          c as any
-        );
-        return true;
-      },
-      removeUserFromUserGroup: async (
-        { id, userId }: { id: string; userId: string },
-        c: Context<AuthContainer>
-      ) => {
-        const { removeUserFromUserGroupCommandHandler } =
-          c.var.container.cradle;
-        await removeUserFromUserGroupCommandHandler.execute(
-          { userGroupId: id, userId } as any,
-          c as any
+          { userGroupId: args.id, roleId: args.roleId },
+          toApplicationContext(c)
         );
         return true;
       },

@@ -4,9 +4,11 @@ import {
   type CommandHandler,
   type EventDispatcher,
 } from '@app/common';
-import type { DeleteAccountCommand } from '@app/modules/auth/application/interfaces/commands/delete-account-command';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
+import type {
+  UserRepository,
+  UserValidatorService,
+} from '@app/modules/auth/domain';
+import type { DeleteAccountCommand } from '@app/modules/auth/interfaces';
 
 export class DeleteAccountCommandHandler
   implements CommandHandler<DeleteAccountCommand, void>

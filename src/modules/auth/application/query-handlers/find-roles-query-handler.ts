@@ -7,14 +7,14 @@ import {
   type PaginatedResult,
   type QueryHandler,
 } from '@app/common';
-import type { FindRolesQuery } from '@app/modules/auth/application/interfaces/queries/find-roles-query';
+import { AuthRole } from '@app/modules/auth/domain';
 import {
   ROLE_READ_MODEL_FIELDS,
   ROLE_READ_MODEL_SORT_FIELDS,
+  type FindRolesQuery,
   type RoleReadModel,
-} from '@app/modules/auth/application/interfaces/queries/role-read-model';
-import type { RoleReadRepository } from '@app/modules/auth/application/interfaces/repositories/role-read-repository';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
+  type RoleReadRepository,
+} from '@app/modules/auth/interfaces';
 
 export class FindRolesQueryHandler
   implements QueryHandler<FindRolesQuery, PaginatedResult<RoleReadModel>>
@@ -51,7 +51,7 @@ export class FindRolesQueryHandler
     return await this.roleReadRepository.find({
       ...validatePaginationQuery(
         query,
-        ROLE_READ_MODEL_FIELDS as string[],
+        ROLE_READ_MODEL_FIELDS,
         ROLE_READ_MODEL_SORT_FIELDS
       ),
       searchTerm,

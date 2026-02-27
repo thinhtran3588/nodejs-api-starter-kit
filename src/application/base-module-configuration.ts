@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import {
+  schema as commonSchema,
   createApiRoute,
-  modelConfiguration as domainEventModelConfiguration,
   type App,
   type ModuleConfiguration,
 } from '@app/common';
@@ -10,7 +10,6 @@ export const moduleConfiguration: ModuleConfiguration = {
   registerDependencies(_container): void {
     // No dependencies to register
   },
-  models: [domainEventModelConfiguration],
   adapters: [
     {
       registerRoutes(app: App): void {
@@ -54,4 +53,5 @@ export const moduleConfiguration: ModuleConfiguration = {
       },
     },
   ],
+  schema: commonSchema,
 };

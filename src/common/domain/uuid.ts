@@ -1,4 +1,4 @@
-import { validate as isValidUuid, v4 as uuidv4 } from 'uuid';
+import { validate as isValidUuid, v7 as uuidv7 } from 'uuid';
 import { ValidationErrorCode } from '@app/common/enums/validation-error-code';
 import { ValidationException } from '@app/common/utils/errors';
 import { validate } from '@app/common/utils/validate';
@@ -100,6 +100,6 @@ export class Uuid {
    * @returns A new Uuid instance with a randomly generated UUID
    */
   static generate(): Uuid {
-    return new Uuid(uuidv4());
+    return new Uuid(uuidv7());
   }
 }

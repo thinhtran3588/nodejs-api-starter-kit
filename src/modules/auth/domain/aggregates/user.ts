@@ -6,12 +6,14 @@ import {
   type BaseAggregateParams,
   type Uuid,
 } from '@app/common';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import type { SignInType } from '@app/modules/auth/domain/enums/sign-in-type';
-import { UserEventType } from '@app/modules/auth/domain/enums/user-event-type';
-import { UserStatus } from '@app/modules/auth/domain/enums/user-status';
-import { type Email } from '@app/modules/auth/domain/value-objects/email';
-import { type Username } from '@app/modules/auth/domain/value-objects/username';
+import {
+  AuthExceptionCode,
+  UserEventType,
+  UserStatus,
+  type Email,
+  type SignInType,
+  type Username,
+} from '@app/modules/auth/domain';
 
 enum UserField {
   EMAIL = 'email',

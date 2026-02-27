@@ -142,18 +142,3 @@ vite.config.ts.timestamp-*
 
 # Database data directory
 local-database/
-
-# Compiled TypeScript files in sequelize folder
-sequelize/**/*.js
-sequelize/**/*.d.ts
-sequelize/**/*.js.map
-sequelize/**/*.d.ts.map
-scripts/sequelize/**/*.js
-scripts/sequelize/**/*.d.ts
-scripts/sequelize/**/*.js.map
-scripts/sequelize/**/*.d.ts.map
-
-# PR description
-pr_description.md
-
-hono-api/

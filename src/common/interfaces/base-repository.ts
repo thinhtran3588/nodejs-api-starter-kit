@@ -1,5 +1,6 @@
 import type { BaseAggregate } from '@app/common/domain/base-aggregate';
 import type { Uuid } from '@app/common/domain/uuid';
+import type { DatabaseTransaction } from '@app/common/interfaces/database';
 
 /**
  * Generic repository interface for aggregate persistence operations
@@ -18,7 +19,7 @@ export interface BaseRepository<TAggregate extends BaseAggregate> {
    */
   save(
     aggregate: TAggregate,
-    postSaveCallback?: (transaction: any) => Promise<void>
+    postSaveCallback?: (transaction: DatabaseTransaction) => Promise<void>
   ): Promise<void>;
 
   /**

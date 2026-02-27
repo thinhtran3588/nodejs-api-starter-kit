@@ -1,28 +1,40 @@
-import { literal, Op, type Sequelize } from 'sequelize';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import {
   buildFullTextSearch,
   PAGINATION_DEFAULT_ITEMS_PER_PAGE,
   pickFields,
+  type DatabaseClient,
   type PaginatedResult,
 } from '@app/common';
-import type { FindRolesQueryParams } from '@app/modules/auth/application/interfaces/queries/role-query-params';
-import type { RoleReadModel } from '@app/modules/auth/application/interfaces/queries/role-read-model';
-import type { RoleReadRepository } from '@app/modules/auth/application/interfaces/repositories/role-read-repository';
-import { type RoleModel } from '@app/modules/auth/infrastructure/models/role-model';
+import { schema } from '@app/modules/auth/infrastructure/schema';
+import type {
+  FindRolesQueryParams,
+  RoleReadModel,
+  RoleReadRepository,
+} from '@app/modules/auth/interfaces';
+
+const { roles } = schema;
+const roleSelectColumns = {
+  id: roles.id,
+  code: roles.code,
+  name: roles.name,
+  description: roles.description,
+  version: roles.version,
+  createdAt: roles.createdAt,
+  lastModifiedAt: roles.lastModifiedAt,
+  createdBy: roles.createdBy,
+  lastModifiedBy: roles.lastModifiedBy,
+} as const;
 
 /**
- * Sequelize implementation of RoleReadRepository
- * Uses PostgreSQL read database via Sequelize ORM
+ * Drizzle implementation of RoleReadRepository
+ * Uses PostgreSQL read database via Drizzle ORM
  */
 export class RoleReadRepositoryImpl implements RoleReadRepository {
-  private readonly readDatabase: Sequelize;
+  private readonly readDatabase: DatabaseClient;
 
-  constructor({ readDatabase }: { readDatabase: Sequelize }) {
+  constructor({ readDatabase }: { readDatabase: DatabaseClient }) {
     this.readDatabase = readDatabase;
-  }
-
-  private getReadModel() {
-    return this.readDatabase.models['Role'] as typeof RoleModel;
   }
 
   async find(
@@ -38,19 +50,11 @@ export class RoleReadRepositoryImpl implements RoleReadRepository {
       sortOrder = 'ASC',
     } = query;
 
-    const conditions: Array<
-      Record<string, unknown> | ReturnType<typeof literal>
-    > = [];
+    const conditions = [];
 
-    const where: {
-      [Op.and]?: Array<Record<string, unknown> | ReturnType<typeof literal>>;
-    } = {};
-
-    const order: Array<[string | ReturnType<typeof literal>, string]> = [
-      [sortField ?? 'name', sortOrder ?? 'ASC'],
-    ];
-
-    const { searchCondition } = buildFullTextSearch(searchTerm);
+    const { searchCondition } = buildFullTextSearch(searchTerm, {
+      searchVectorColumn: 'roles.search_vector',
+    });
 
     if (searchCondition) {
       conditions.push(searchCondition);
@@ -58,15 +62,12 @@ export class RoleReadRepositoryImpl implements RoleReadRepository {
 
     if (userGroupId) {
       conditions.push(
-        literal(
-          `EXISTS (SELECT 1 FROM user_group_roles WHERE user_group_roles.role_id = "Role".id AND user_group_roles.user_group_id = :userGroupId)`
-        )
+        sql`exists (select 1 from user_group_roles where user_group_roles.role_id = ${roles.id} and user_group_roles.user_group_id = ${userGroupId})`
       );
     }
 
-    if (conditions.length > 0) {
-      where[Op.and] = conditions;
-    }
+    const whereCondition =
+      conditions.length > 0 ? and(...conditions) : undefined;
 
     const attributes = fields
       ? [
@@ -75,16 +76,47 @@ export class RoleReadRepositoryImpl implements RoleReadRepository {
           ...fields.filter((field) => field !== 'id' && field !== 'code'),
         ]
       : undefined;
+    const selectedColumns = attributes
+      ? attributes.reduce<
+          Record<
+            string,
+            (typeof roleSelectColumns)[keyof typeof roleSelectColumns]
+          >
+        >((columns, attribute) => {
+          columns[attribute] =
+            roleSelectColumns[attribute as keyof typeof roleSelectColumns];
+          return columns;
+        }, {})
+      : roleSelectColumns;
 
-    const ReadRoleModel = this.getReadModel();
-    const { count, rows } = await ReadRoleModel.findAndCountAll({
-      where,
-      limit: itemsPerPage,
-      offset: pageIndex * itemsPerPage,
-      order,
-      attributes,
-      replacements: userGroupId ? { userGroupId } : undefined,
-    });
+    const sortColumn = (() => {
+      switch (sortField) {
+        case 'code':
+          return roles.code;
+        case 'createdAt':
+          return roles.createdAt;
+        case 'lastModifiedAt':
+          return roles.lastModifiedAt;
+        default:
+          return roles.name;
+      }
+    })();
+    const orderBy = sortOrder === 'DESC' ? desc(sortColumn) : asc(sortColumn);
+
+    const [countResult, rows] = await Promise.all([
+      this.readDatabase
+        .select({ count: sql<number>`count(*)`.as('count') })
+        .from(roles)
+        .where(whereCondition ?? sql`true`),
+      this.readDatabase
+        .select(selectedColumns)
+        .from(roles)
+        .where(whereCondition ?? sql`true`)
+        .orderBy(orderBy)
+        .limit(itemsPerPage)
+        .offset(pageIndex * itemsPerPage),
+    ]);
+    const count = Number(countResult[0]?.count ?? 0);
 
     return {
       data: rows.map((row) => pickFields(row, attributes) as RoleReadModel),
@@ -96,11 +128,14 @@ export class RoleReadRepositoryImpl implements RoleReadRepository {
   }
 
   async findById(id: string): Promise<RoleReadModel | undefined> {
-    const ReadRoleModel = this.getReadModel();
-    const role = await ReadRoleModel.findByPk(id);
+    const [role] = await this.readDatabase
+      .select()
+      .from(roles)
+      .where(eq(roles.id, id))
+      .limit(1);
     if (!role) {
       return undefined;
     }
-    return role.toJSON() as RoleReadModel;
+    return role as RoleReadModel;
   }
 }

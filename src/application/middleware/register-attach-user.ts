@@ -53,9 +53,9 @@ export function extractUserContext(c: Context<Container>): AppUser | undefined {
 export const registerAttachUser = (app: App<Container>) => {
   app.use('*', async (c: Context<Container>, next) => {
     const userContext = extractUserContext(c);
-    c.set('user', userContext);
 
     if (userContext) {
+      c.set('user', userContext);
       // Enrich the request-scoped logger with authenticated userId for downstream logs.
       const userId = userContext.userId.getValue();
       const userLogger = c.var.container.cradle.logger.child({ userId });

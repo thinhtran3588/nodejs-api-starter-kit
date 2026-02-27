@@ -1,8 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument */
 import { z } from '@hono/zod-openapi';
+import type { GraphQLResolveInfo } from 'graphql';
 import {
   createApiRoute,
-  PAGINATION_MAX_ITEMS_PER_PAGE,
+  createFindQueryResultSchema,
+  createFindQuerySchema,
+  createIdSchema,
+  extractGraphQLFields,
+  includeJsonSchema,
+  includeRouteSchemas,
+  resolveServices,
+  toApplicationContext,
   type AdapterConfiguration,
   type App,
   type Context,
@@ -10,40 +17,25 @@ import {
 import {
   ROLE_READ_MODEL_FIELDS,
   ROLE_READ_MODEL_SORT_FIELDS,
-} from '@app/modules/auth/application/interfaces/queries/role-read-model';
-import type { AuthContainer } from '@app/modules/auth/interfaces';
+  type AuthContainer,
+  type FindRolesQuery,
+  type GetRoleQuery,
+} from '@app/modules/auth/interfaces';
 
 const TAG = 'role';
-
 const RoleSchema = z
   .object({
-    id: z.string(),
+    id: z.uuid(),
     code: z.string(),
     name: z.string(),
     description: z.string(),
     version: z.number(),
-    createdAt: z.string().datetime(),
+    createdAt: z.iso.datetime(),
     createdBy: z.string().nullable().optional(),
-    lastModifiedAt: z.string().datetime(),
+    lastModifiedAt: z.iso.datetime().optional(),
     lastModifiedBy: z.string().nullable().optional(),
   })
   .openapi('Role');
-
-const errorResponse = z.object({
-  error: z.string(),
-  data: z.any().optional(),
-});
-
-function createErrorResponse(description: string) {
-  return {
-    content: {
-      'application/json': {
-        schema: errorResponse,
-      },
-    },
-    description,
-  };
-}
 
 export const roleAdapter: AdapterConfiguration<AuthContainer> = {
   registerRoutes(app: App<AuthContainer>): void {
@@ -57,66 +49,32 @@ export const roleAdapter: AdapterConfiguration<AuthContainer> = {
           'Searches for roles by name or description with pagination support. If no searchTerm is provided, returns all roles.',
         security: [{ bearerAuth: [] }],
         request: {
-          query: z.object({
-            searchTerm: z.string().optional(),
-            userGroupId: z.string().uuid().optional(),
-            pageIndex: z.coerce.number().min(0).optional(),
-            itemsPerPage: z.coerce
-              .number()
-              .min(1)
-              .max(PAGINATION_MAX_ITEMS_PER_PAGE)
-              .optional(),
-            fields: z
-              .union([
-                z.enum(ROLE_READ_MODEL_FIELDS as any),
-                z.array(z.enum(ROLE_READ_MODEL_FIELDS as any)),
-              ])
-              .optional(),
-            sortField: z.enum(ROLE_READ_MODEL_SORT_FIELDS as any).optional(),
-            sortOrder: z.enum(['ASC', 'DESC']).optional(),
-          }),
+          query: createFindQuerySchema(
+            ROLE_READ_MODEL_FIELDS,
+            ROLE_READ_MODEL_SORT_FIELDS,
+            {
+              userGroupId: z.uuid().optional(),
+            }
+          ),
         },
         responses: {
-          200: {
-            content: {
-              'application/json': {
-                schema: z.object({
-                  data: z.array(RoleSchema),
-                  pagination: z.object({
-                    count: z.number(),
-                    pageIndex: z.number(),
-                  }),
-                }),
-              },
-            },
-            description: 'List of roles',
-          },
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          500: createErrorResponse('Internal server error'),
+          ...includeJsonSchema(
+            200,
+            'List of roles',
+            createFindQueryResultSchema(RoleSchema)
+          ),
+          ...includeRouteSchemas([401, 403, 500]),
         },
       }),
       async (c) => {
-        const { findRolesQueryHandler } = c.var.container.cradle;
+        const { findRolesQueryHandler } = resolveServices(c);
         const query = c.req.valid('query');
-
-        let fieldsArray: string[] | undefined;
-        if (query.fields) {
-          fieldsArray = Array.isArray(query.fields)
-            ? query.fields
-            : [query.fields];
-        }
-
-        const typedQuery = {
-          ...query,
-          fields: fieldsArray,
-        };
-
         const result = await findRolesQueryHandler.execute(
-          typedQuery as any,
-          c as any
+          query,
+          toApplicationContext(c)
         );
-        return c.json(result as any, 200);
+
+        return c.json(result, 200);
       }
     );
 
@@ -129,30 +87,21 @@ export const roleAdapter: AdapterConfiguration<AuthContainer> = {
         description: 'Retrieves a specific role by its unique identifier.',
         security: [{ bearerAuth: [] }],
         request: {
-          params: z.object({
-            id: z.string(),
-          }),
+          params: createIdSchema(),
         },
         responses: {
-          200: {
-            content: {
-              'application/json': {
-                schema: RoleSchema,
-              },
-            },
-            description: 'Role details',
-          },
-          401: createErrorResponse('Unauthorized'),
-          403: createErrorResponse('Forbidden'),
-          404: createErrorResponse('Not found'),
-          500: createErrorResponse('Internal server error'),
+          ...includeJsonSchema(200, 'Role details', RoleSchema),
+          ...includeRouteSchemas([401, 403, 404, 500]),
         },
       }),
       async (c) => {
-        const { getRoleQueryHandler } = c.var.container.cradle;
-        const { id } = c.req.valid('param');
-        const result = await getRoleQueryHandler.execute({ id }, c as any);
-        return c.json(result as any, 200);
+        const { getRoleQueryHandler } = resolveServices(c);
+        const params = c.req.valid('param');
+        const result = await getRoleQueryHandler.execute(
+          params,
+          toApplicationContext(c)
+        );
+        return c.json(result, 200);
       }
     );
   },
@@ -170,20 +119,34 @@ export const roleAdapter: AdapterConfiguration<AuthContainer> = {
         lastModifiedBy: String
       }
 
+      type RolesResult {
+        data: [Role!]!
+        pagination: PaginationInfo!
+      }
+
       extend type Query {
-        roles(searchTerm: String, userGroupId: String, pageIndex: Int, itemsPerPage: Int): [Role]
+        roles(searchTerm: String, userGroupId: String, pageIndex: Int, itemsPerPage: Int): RolesResult
         role(id: String!): Role
       }
     `,
     resolvers: {
-      roles: async (args: any, c: Context<AuthContainer>) => {
-        const { findRolesQueryHandler } = c.var.container.cradle;
-        const result = await findRolesQueryHandler.execute(args, c as any);
-        return result.data;
+      roles: async (
+        query: FindRolesQuery,
+        c: Context<AuthContainer>,
+        info: GraphQLResolveInfo
+      ) => {
+        const { findRolesQueryHandler } = resolveServices(c);
+        return findRolesQueryHandler.execute(
+          {
+            ...query,
+            fields: extractGraphQLFields(info, 'data'),
+          },
+          toApplicationContext(c)
+        );
       },
-      role: async ({ id }: { id: string }, c: Context<AuthContainer>) => {
-        const { getRoleQueryHandler } = c.var.container.cradle;
-        return getRoleQueryHandler.execute({ id }, c as any);
+      role: async (query: GetRoleQuery, c: Context<AuthContainer>) => {
+        const { getRoleQueryHandler } = resolveServices(c);
+        return getRoleQueryHandler.execute(query, toApplicationContext(c));
       },
     },
   },

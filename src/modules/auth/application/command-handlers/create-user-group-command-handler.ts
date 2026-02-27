@@ -8,11 +8,13 @@ import {
   type CreateCommandResult,
   type EventDispatcher,
 } from '@app/common';
-import type { CreateUserGroupCommand } from '@app/modules/auth/application/interfaces/commands/create-user-group-command';
-import { UserGroup } from '@app/modules/auth/domain/aggregates/user-group';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
-import type { UserGroupRepository } from '@app/modules/auth/domain/interfaces/repositories/user-group-repository';
+import {
+  AuthExceptionCode,
+  AuthRole,
+  UserGroup,
+  type UserGroupRepository,
+} from '@app/modules/auth/domain';
+import type { CreateUserGroupCommand } from '@app/modules/auth/interfaces';
 
 export class CreateUserGroupCommandHandler
   implements CommandHandler<CreateUserGroupCommand, CreateCommandResult>

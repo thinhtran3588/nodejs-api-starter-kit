@@ -13,9 +13,6 @@ import type { ToggleUserStatusCommandHandler } from '@app/modules/auth/applicati
 import type { UpdateProfileCommandHandler } from '@app/modules/auth/application/command-handlers/update-profile-command-handler';
 import type { UpdateUserCommandHandler } from '@app/modules/auth/application/command-handlers/update-user-command-handler';
 import type { UpdateUserGroupCommandHandler } from '@app/modules/auth/application/command-handlers/update-user-group-command-handler';
-import type { RoleReadRepository } from '@app/modules/auth/application/interfaces/repositories/role-read-repository';
-import type { UserGroupReadRepository } from '@app/modules/auth/application/interfaces/repositories/user-group-read-repository';
-import type { UserReadRepository } from '@app/modules/auth/application/interfaces/repositories/user-read-repository';
 import type { FindRolesQueryHandler } from '@app/modules/auth/application/query-handlers/find-roles-query-handler';
 import type { FindUserGroupsQueryHandler } from '@app/modules/auth/application/query-handlers/find-user-groups-query-handler';
 import type { FindUsersQueryHandler } from '@app/modules/auth/application/query-handlers/find-users-query-handler';
@@ -23,13 +20,20 @@ import type { GetProfileQueryHandler } from '@app/modules/auth/application/query
 import type { GetRoleQueryHandler } from '@app/modules/auth/application/query-handlers/get-role-query-handler';
 import type { GetUserGroupQueryHandler } from '@app/modules/auth/application/query-handlers/get-user-group-query-handler';
 import type { GetUserQueryHandler } from '@app/modules/auth/application/query-handlers/get-user-query-handler';
-import type { RoleRepository } from '@app/modules/auth/domain/interfaces/repositories/role-repository';
-import type { UserGroupRepository } from '@app/modules/auth/domain/interfaces/repositories/user-group-repository';
-import type { UserRepository } from '@app/modules/auth/domain/interfaces/repositories/user-repository';
-import type { ExternalAuthenticationService } from '@app/modules/auth/domain/interfaces/services/external-authentication-service';
-import type { UserGroupValidatorService } from '@app/modules/auth/domain/interfaces/services/user-group-validator-service';
-import type { UserIdGeneratorService } from '@app/modules/auth/domain/interfaces/services/user-id-generator-service';
-import type { UserValidatorService } from '@app/modules/auth/domain/interfaces/services/user-validator-service';
+import type {
+  ExternalAuthenticationService,
+  RoleRepository,
+  UserGroupRepository,
+  UserGroupValidatorService,
+  UserIdGeneratorService,
+  UserRepository,
+  UserValidatorService,
+} from '@app/modules/auth/domain';
+import type {
+  RoleReadRepository,
+  UserGroupReadRepository,
+  UserReadRepository,
+} from '@app/modules/auth/interfaces';
 
 export interface AuthContainer {
   userRepository: UserRepository;
@@ -39,6 +43,11 @@ export interface AuthContainer {
   userReadRepository: UserReadRepository;
   roleReadRepository: RoleReadRepository;
   userGroupReadRepository: UserGroupReadRepository;
+
+  externalAuthenticationService: ExternalAuthenticationService;
+  userValidatorService: UserValidatorService;
+  userGroupValidatorService: UserGroupValidatorService;
+  userIdGeneratorService: UserIdGeneratorService;
 
   registerCommandHandler: RegisterCommandHandler;
   signInCommandHandler: SignInCommandHandler;
@@ -63,9 +72,4 @@ export interface AuthContainer {
   getRoleQueryHandler: GetRoleQueryHandler;
   getUserGroupQueryHandler: GetUserGroupQueryHandler;
   findUserGroupsQueryHandler: FindUserGroupsQueryHandler;
-
-  externalAuthenticationService: ExternalAuthenticationService;
-  userValidatorService: UserValidatorService;
-  userGroupValidatorService: UserGroupValidatorService;
-  userIdGeneratorService: UserIdGeneratorService;
 }

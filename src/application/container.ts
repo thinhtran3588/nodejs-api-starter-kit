@@ -4,13 +4,13 @@ import {
   createContainer as createAwilixContainer,
   type AwilixContainer,
 } from 'awilix';
-import { type Sequelize } from 'sequelize';
 import {
   AuthorizationService,
+  DrizzleDomainEventRepository,
   EventDispatcherImpl,
   JwtService,
-  SequelizeDomainEventRepository,
   type App,
+  type DatabaseClient,
   type DomainEventRepository,
   type EventDispatcher,
   type Logger,
@@ -24,8 +24,8 @@ import type { AuthContainer } from '@app/modules/auth/interfaces/auth-container'
 export interface BaseContainer {
   authorizationService: AuthorizationService;
   jwtService: JwtService;
-  writeDatabase: Sequelize;
-  readDatabase: Sequelize;
+  writeDatabase: DatabaseClient;
+  readDatabase: DatabaseClient;
   logger: Logger;
   eventDispatcher: EventDispatcher;
   domainEventRepository: DomainEventRepository;
@@ -48,8 +48,8 @@ export function createContainer({
   readDatabase,
 }: {
   logger: Logger;
-  writeDatabase: Sequelize;
-  readDatabase: Sequelize;
+  writeDatabase: DatabaseClient;
+  readDatabase: DatabaseClient;
 }): AwilixContainer<Container> {
   const container = createAwilixContainer<Container>({
     injectionMode: 'PROXY', // Use proxy injection (cradle)
@@ -59,11 +59,11 @@ export function createContainer({
   container.register({
     authorizationService: asClass(AuthorizationService).singleton(),
     jwtService: asClass(JwtService).singleton(),
-    writeDatabase: asValue<Sequelize>(writeDatabase),
-    readDatabase: asValue<Sequelize>(readDatabase),
+    writeDatabase: asValue<DatabaseClient>(writeDatabase),
+    readDatabase: asValue<DatabaseClient>(readDatabase),
     logger: asValue<Logger>(logger),
     eventDispatcher: asClass(EventDispatcherImpl).singleton(),
-    domainEventRepository: asClass(SequelizeDomainEventRepository).singleton(),
+    domainEventRepository: asClass(DrizzleDomainEventRepository).singleton(),
   });
 
   return container;

@@ -208,7 +208,7 @@ Query handlers encapsulate read operations:
 
 ```typescript
 // src/modules/auth/application/query-handlers/get-user.query-handler.ts
-import type { UserReadRepository } from '@app/modules/auth/application/interfaces/repositories/user-read-repository';
+import type { UserReadRepository } from '@app/modules/auth/interfaces/repositories/user-read-repository';
 
 interface Dependencies {
   userReadRepository: UserReadRepository;

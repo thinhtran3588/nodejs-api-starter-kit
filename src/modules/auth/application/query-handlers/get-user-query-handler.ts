@@ -5,12 +5,16 @@ import {
   type AuthorizationService,
   type QueryHandler,
 } from '@app/common';
-import type { GetUserQuery } from '@app/modules/auth/application/interfaces/queries/get-user-query';
-import type { UserReadModel } from '@app/modules/auth/application/interfaces/queries/user-read-model';
-import type { UserReadRepository } from '@app/modules/auth/application/interfaces/repositories/user-read-repository';
-import { AuthExceptionCode } from '@app/modules/auth/domain/enums/auth-exception-code';
-import { AuthRole } from '@app/modules/auth/domain/enums/auth-role';
-import { UserStatus } from '@app/modules/auth/domain/enums/user-status';
+import {
+  AuthExceptionCode,
+  AuthRole,
+  UserStatus,
+} from '@app/modules/auth/domain';
+import type {
+  GetUserQuery,
+  UserReadModel,
+  UserReadRepository,
+} from '@app/modules/auth/interfaces';
 
 export class GetUserQueryHandler
   implements QueryHandler<GetUserQuery, UserReadModel>

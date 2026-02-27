@@ -1,13 +1,19 @@
-import { Sequelize } from 'sequelize';
-import type { Logger, ModuleConfiguration } from '@app/common';
+import { DefaultLogger } from 'drizzle-orm/logger';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import type { AnyPgTable } from 'drizzle-orm/pg-core';
+import { Pool } from 'pg';
+import {
+  schema as commonSchema,
+  type DatabaseClient,
+  type Logger,
+  type ModuleConfiguration,
+} from '@app/common';
 
-const options = {
-  pool: {
-    max: 10,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
+const poolOptions = {
+  max: 10,
+  min: 0,
+  idleTimeoutMillis: 10000,
+  connectionTimeoutMillis: 30000,
 };
 
 function getRequiredEnv(
@@ -20,74 +26,85 @@ function getRequiredEnv(
   return value;
 }
 
-function getLogging(logger: Logger): ((sql: string) => void) | false {
-  return process.env['DB_LOGGING_ENABLED'] === 'true'
-    ? (sql: string) => {
-        logger.info({}, sql);
-      }
-    : false;
+function getLogging(logger: Logger): DefaultLogger | undefined {
+  if (process.env['DB_LOGGING_ENABLED'] !== 'true') {
+    return undefined;
+  }
+
+  return new DefaultLogger({
+    writer: {
+      write(message: string) {
+        logger.info({}, message);
+      },
+    },
+  });
 }
 
 /**
  * Initializes the write database connection (for write operations)
  */
-export function initializeWriteDatabase(logger: Logger): Sequelize {
+export function initializeWriteDatabase(
+  logger: Logger,
+  schema: Record<string, AnyPgTable>
+): DatabaseClient {
   const writeDatabaseUri = getRequiredEnv('WRITE_DATABASE_URI');
-  return new Sequelize(writeDatabaseUri, {
-    ...options,
-    logging: getLogging(logger),
+  const pool = new Pool({
+    connectionString: writeDatabaseUri,
+    ...poolOptions,
   });
+
+  return drizzle(pool, {
+    schema,
+    logger: getLogging(logger),
+  }) as unknown as DatabaseClient;
+}
+
+function initializeDatabase(
+  logger: Logger,
+  databaseUri: string,
+  schema: Record<string, AnyPgTable>
+): DatabaseClient {
+  const pool = new Pool({
+    connectionString: databaseUri,
+    ...poolOptions,
+  });
+
+  return drizzle(pool, {
+    schema,
+    logger: getLogging(logger),
+  }) as unknown as DatabaseClient;
 }
 
 /**
  * Initializes the read database connection (for read operations)
  */
-export function initializeReadDatabase(logger: Logger): Sequelize {
+export function initializeReadDatabase(
+  logger: Logger,
+  schema: Record<string, AnyPgTable>
+): DatabaseClient {
   const readDatabaseUri = getRequiredEnv('READ_DATABASE_URI');
-  return new Sequelize(readDatabaseUri, {
-    ...options,
-    logging: getLogging(logger),
-  });
+  return initializeDatabase(logger, readDatabaseUri, schema);
 }
 
 /**
- * Registers database models and associations from modules
- */
-function registerDatabaseModels(
-  modules: ModuleConfiguration[],
-  readDatabase: Sequelize,
-  writeDatabase: Sequelize
-): void {
-  // Register models for real and write databases
-  modules.forEach((module: ModuleConfiguration) => {
-    module.models?.forEach((model) => {
-      model.register(readDatabase);
-      model.register(writeDatabase);
-    });
-  });
-
-  // Register model associations
-  modules.forEach((module: ModuleConfiguration) => {
-    module.modelAssociations?.forEach((association) => {
-      association.register();
-    });
-  });
-}
-
-/**
- * Initializes both read and write database connections and registers models
+ * Initializes both read and write database connections
  */
 export function initializeDatabases(
   modules: ModuleConfiguration[],
   logger: Logger
 ): {
-  readDatabase: Sequelize;
-  writeDatabase: Sequelize;
+  readDatabase: DatabaseClient;
+  writeDatabase: DatabaseClient;
 } {
-  const readDatabase = initializeReadDatabase(logger);
-  const writeDatabase = initializeWriteDatabase(logger);
-
-  registerDatabaseModels(modules, readDatabase, writeDatabase);
+  const mergedSchema = modules.reduce(
+    (acc, module) => ({
+      ...acc,
+      ...(module.schema ?? {}),
+    }),
+    { ...commonSchema }
+  );
+  const readDatabase = initializeReadDatabase(logger, mergedSchema);
+  const writeDatabase = initializeWriteDatabase(logger, mergedSchema);
 
   return {
     readDatabase,

@@ -47,5 +47,10 @@
       "@app/*": ["src/*"]
     }
   },
-  "exclude": ["node_modules", "dist", "vitest.config.ts", "sequelize", "hono-api"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "vitest.config.ts",
+    "database"
+  ]
 }
