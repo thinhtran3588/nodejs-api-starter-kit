@@ -25,4 +25,18 @@ describe('buildFullTextSearch', () => {
     expect(result.searchCondition).toBeDefined();
     expect(result.rankLiteral).toBeDefined();
   });
+
+  it('builds prefix query terms for multi-word input', () => {
+    const result = buildFullTextSearch('user test');
+
+    expect(result.searchCondition).toBeDefined();
+    expect(result.rankLiteral).toBeDefined();
+  });
+
+  it('returns undefined for input that becomes empty after sanitization', () => {
+    const result = buildFullTextSearch('&&& ::: !!!');
+
+    expect(result.searchCondition).toBeUndefined();
+    expect(result.rankLiteral).toBeUndefined();
+  });
 });
