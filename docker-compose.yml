@@ -25,6 +25,8 @@ services:
       dockerfile: Dockerfile
     container_name: api
     image: api:latest
+    env_file:
+      - .env
     ports:
       - '8080:8080'
     restart: unless-stopped
