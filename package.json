@@ -23,7 +23,9 @@
     "migrate": "bun database/migrate.ts up",
     "migrate:down": "bun database/migrate.ts down",
     "migrate:status": "bun database/migrate.ts status",
-    "migrate:create": "bun database/create-migration.ts"
+    "migrate:create": "bun database/create-migration.ts",
+    "cf:dev": "wrangler dev",
+    "cf:deploy": "wrangler deploy"
   },
   "keywords": [],
   "author": "Thinh Tran",
@@ -67,6 +69,7 @@
     "prettier": "^3.6.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.48.0",
-    "vitest": "^4.0.14"
+    "vitest": "^4.0.14",
+    "wrangler": "^4.69.0"
   }
 }
