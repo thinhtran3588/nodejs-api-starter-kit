@@ -1,12 +1,19 @@
-FROM oven/bun:1-alpine AS builder
+FROM oven/bun:1-alpine AS deps
 
 WORKDIR /app
 
 # Copy package manifest (and bun lockfile if present)
 COPY package.json bun.lockb* ./
 
-# Install all dependencies (dev + prod) for build
+# Install all dependencies (dev + prod) for build caching
 RUN bun install
+
+FROM oven/bun:1-alpine AS builder
+
+WORKDIR /app
+
+# Reuse installed dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 
 # Copy the rest of the source code
 COPY . .
