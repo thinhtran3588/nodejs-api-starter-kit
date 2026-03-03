@@ -33,10 +33,11 @@ docker push your-registry-url/your-api-name:tag
 
 The Dockerfile uses a multi-stage build:
 
-1. **Builder Stage**: Installs all dependencies (including dev dependencies) and builds TypeScript to JavaScript
-2. **Production Stage**: Installs only production dependencies and copies compiled JavaScript
+1. **Dependencies Stage**: Installs dependencies used for build
+2. **Builder Stage**: Compiles a single executable with Bun (`--compile`)
+3. **Production Stage**: Uses Alpine and copies only the executable (no production dependency install)
 
-The application runs as a non-root user (`nodejs`) for security.
+The production container runs as a non-root user (`app`) for security.
 
 ## Environment Variables
 
