@@ -42,15 +42,15 @@ describe('buildFullTextSearch', () => {
     expect(result.rankLiteral).toBeDefined();
   });
 
-  it('adds substring fallback for single-term input', () => {
+  it('uses full-text query only for single-term input', () => {
     const result = buildFullTextSearch('xyz');
     const searchSql = toSql(result.searchCondition);
 
     expect(searchSql).toContain('to_tsquery');
-    expect(searchSql).toContain('ILIKE');
+    expect(searchSql).not.toContain('ILIKE');
   });
 
-  it('does not add substring fallback for multi-word input', () => {
+  it('uses full-text query only for multi-word input', () => {
     const result = buildFullTextSearch('abc xyz');
     const searchSql = toSql(result.searchCondition);
 
@@ -63,5 +63,23 @@ describe('buildFullTextSearch', () => {
 
     expect(result.searchCondition).toBeUndefined();
     expect(result.rankLiteral).toBeUndefined();
+  });
+
+  it('sanitizes punctuation-heavy terms without throwing', () => {
+    const result = buildFullTextSearch("O'Reilly !!! @@ TypeScript");
+    const searchSql = toSql(result.searchCondition);
+
+    expect(searchSql).toContain('to_tsquery');
+    expect(result.rankLiteral).toBeDefined();
+  });
+
+  it('deduplicates terms and caps total terms to keep query bounded', () => {
+    const result = buildFullTextSearch(
+      'john john john a b c d e f g h i j k l'
+    );
+    const searchSql = toSql(result.searchCondition);
+
+    expect(searchSql).toContain('john:*');
+    expect(searchSql.match(/:\*/g)?.length).toBeLessThanOrEqual(8);
   });
 });
