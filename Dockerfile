@@ -1,42 +1,37 @@
-FROM oven/bun:1-alpine AS deps
+FROM oven/bun:1.3.10-alpine AS builder
 
 WORKDIR /app
 
 # Copy package manifest (and bun lockfile if present)
 COPY package.json bun.lockb* ./
 
-# Install all dependencies (dev + prod) for build caching
+# Install all dependencies for compiling the executable
 RUN bun install
 
-FROM oven/bun:1-alpine AS builder
-
-WORKDIR /app
-
-# Reuse installed dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copy the rest of the source code
+# Copy source code
 COPY . .
 
-# Build the application (outputs to ./dist)
-RUN bun run build
+# Compile a single Linux executable
+RUN bun build src/index.ts --compile --minify --outfile /app/server
 
-FROM oven/bun:1-alpine
+FROM alpine:3.20
 
 WORKDIR /app
 
-# Copy package manifest (and bun lockfile if present)
-COPY package.json bun.lockb* ./
+# Install runtime libraries required by the compiled executable
+RUN apk add --no-cache libstdc++ libgcc
 
-# Install only production dependencies
-RUN bun install --production --no-save
+# Create and use a non-root user for runtime security
+RUN addgroup -S app && adduser -S -G app app
 
-# Copy compiled application from builder image
-COPY --from=builder /app/dist ./dist
+# Copy compiled executable only (no node_modules needed)
+COPY --from=builder --chown=app:app /app/server ./server
+
+USER app
 
 # Expose the port the app runs on
-EXPOSE 8080
+EXPOSE 3000
 
 # Run the compiled executable
-CMD ["./dist/index"]
+CMD ["./server"]
 
