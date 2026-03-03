@@ -71,8 +71,25 @@ export function buildFullTextSearch(
     };
   }
 
-  // Trim the search term
+  // Trim the search term and normalize whitespace
   const trimmedSearchTerm = searchTerm.trim();
+
+  // Split into individual terms, remove characters that have special meaning in tsquery,
+  // and build a prefix search query (e.g., "use" -> "use:*", "user test" -> "user:* & test:*")
+  const terms = trimmedSearchTerm
+    .split(/\s+/)
+    .map((term) => term.replace(/[&|:!]/g, ''))
+    .filter((term) => term.length > 0);
+
+  // If nothing valid remains after sanitization, skip search
+  if (terms.length === 0) {
+    return {
+      searchCondition: undefined,
+      rankLiteral: undefined,
+    };
+  }
+
+  const tsQuery = terms.map((term) => `${term}:*`).join(' & ');
 
   const safeVectorColumn = /^[a-zA-Z0-9_.]+$/.test(searchVectorColumn)
     ? searchVectorColumn
@@ -84,20 +101,35 @@ export function buildFullTextSearch(
 
   // Construct the full-text search condition using SQL templates
   // unaccent_immutable() is applied to the search term to match the unaccented search_vector
-  // plainto_tsquery is a PostgreSQL function that safely handles user input
+  // to_tsquery is used with prefix operators (:*), so searching "use" will match "user"
   // Example: searching "tam" will match "tâm", "tấm", "tẩm", etc.
-  const searchCondition = sql`
-    ${sql.raw(safeVectorColumn)} @@ plainto_tsquery(${sql.raw(
-      dictionaryLiteral
-    )}, unaccent_immutable(${trimmedSearchTerm}))
+  const fullTextSearchCondition = sql`
+    ${sql.raw(safeVectorColumn)} @@ to_tsquery(
+      ${sql.raw(dictionaryLiteral)},
+      unaccent_immutable(${tsQuery})
+    )
   `;
+
+  // For single-term queries, include a substring fallback so terms like "xyz"
+  // can match concatenated tokens such as "abcxyz".
+  const searchCondition =
+    terms.length === 1
+      ? sql`(
+          ${fullTextSearchCondition}
+          OR ${sql.raw(safeVectorColumn)}::text ILIKE ${`%${terms[0]}%`}
+        )`
+      : fullTextSearchCondition;
 
   // Order by relevance (ts_rank) when searching
   // Higher rank = better match
   const rankLiteral = sql`
-    ts_rank(${sql.raw(safeVectorColumn)}, plainto_tsquery(${sql.raw(
-      dictionaryLiteral
-    )}, unaccent_immutable(${trimmedSearchTerm})))
+    ts_rank(
+      ${sql.raw(safeVectorColumn)},
+      to_tsquery(
+        ${sql.raw(dictionaryLiteral)},
+        unaccent_immutable(${tsQuery})
+      )
+    )
   `;
 
   return {
